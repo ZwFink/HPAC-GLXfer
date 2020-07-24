@@ -825,6 +825,8 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
     break;
   case Stmt::OMPGenericLoopDirectiveClass:
     K = CXCursor_OMPGenericLoopDirective;
+  case Stmt::ApproxDirectiveClass:
+    K = CXCursor_ApproxDirective;
     break;
   case Stmt::BuiltinBitCastExprClass:
     K = CXCursor_BuiltinBitCastExpr;

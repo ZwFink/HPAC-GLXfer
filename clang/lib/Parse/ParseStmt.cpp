@@ -414,8 +414,7 @@ Retry:
 
   case tok::annot_pragma_approx_start:
     ProhibitAttributes(Attrs);
-    HandleApproximate();
-    return StmtEmpty();
+    return ParseApproxDirective(StmtCtx);
 
   case tok::annot_pragma_ms_pointers_to_members:
     ProhibitAttributes(Attrs);

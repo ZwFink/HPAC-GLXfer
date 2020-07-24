@@ -283,3 +283,5 @@ def OMPInteropDirective : StmtNode<OMPExecutableDirective>;
 def OMPDispatchDirective : StmtNode<OMPExecutableDirective>;
 def OMPMaskedDirective : StmtNode<OMPExecutableDirective>;
 def OMPGenericLoopDirective : StmtNode<OMPLoopDirective>;
+
+def ApproxDirective : StmtNode<Stmt>;

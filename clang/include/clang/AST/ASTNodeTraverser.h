@@ -501,6 +501,10 @@ public:
       Visit(C);
   }
 
+  void VisitApproxCapturedExprDecl(const ApproxCapturedExprDecl *D) {
+    Visit(D->getInit());
+  }
+
   template <typename SpecializationDecl>
   void dumpTemplateDeclSpecialization(const SpecializationDecl *D) {
     for (const auto *RedeclWithBadType : D->redecls()) {

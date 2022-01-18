@@ -12,8 +12,6 @@
 // XFAIL: netbsd
 // XFAIL: LIBCXX-AIX-FIXME
 
-// XFAIL: LIBCXX-WINDOWS-FIXME
-
 // REQUIRES: locale.en_US.UTF-8
 // REQUIRES: locale.fr_FR.UTF-8
 // REQUIRES: locale.ru_RU.UTF-8
@@ -90,22 +88,27 @@ int main(int, char**)
     }
 #endif
 
+#ifdef _WIN32
+    std::string us_grouping = "\3";
+#else
+    std::string us_grouping = "\3\3";
+#endif
     {
         Fnf f(LOCALE_en_US_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == us_grouping);
     }
     {
         Fnt f(LOCALE_en_US_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == us_grouping);
     }
 #ifndef TEST_HAS_NO_WIDE_CHARACTERS
     {
         Fwf f(LOCALE_en_US_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == us_grouping);
     }
     {
         Fwt f(LOCALE_en_US_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == us_grouping);
     }
 #endif
 
@@ -128,22 +131,27 @@ int main(int, char**)
     }
 #endif
 
+#ifdef _WIN32
+    std::string ru_grouping = "\3";
+#else
+    std::string ru_grouping = "\3\3";
+#endif
     {
         Fnf f(LOCALE_ru_RU_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == ru_grouping);
     }
     {
         Fnt f(LOCALE_ru_RU_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == ru_grouping);
     }
 #ifndef TEST_HAS_NO_WIDE_CHARACTERS
     {
         Fwf f(LOCALE_ru_RU_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == ru_grouping);
     }
     {
         Fwt f(LOCALE_ru_RU_UTF_8, 1);
-        assert(f.grouping() == "\3\3");
+        assert(f.grouping() == ru_grouping);
     }
 #endif
 

@@ -2470,9 +2470,16 @@ private:
       }
 
       if (IsScheduled) {
-        assert(isSchedulingEntity() && hasValidDependencies() &&
-               UnscheduledDeps == 0 &&
-               "unexpected scheduled state");
+        assert(isSchedulingEntity() &&
+                "unexpected scheduled state");
+        for (const ScheduleData *BundleMember = this; BundleMember;
+             BundleMember = BundleMember->NextInBundle) {
+          assert(BundleMember->hasValidDependencies() &&
+                 BundleMember->UnscheduledDeps == 0 &&
+                 "unexpected scheduled state");
+          assert((BundleMember == this || !BundleMember->IsScheduled) &&
+                 "only bundle is marked scheduled");
+        }
       }
     }
 

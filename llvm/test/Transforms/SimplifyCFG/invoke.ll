@@ -214,4 +214,55 @@ lpad:
   ret void
 }
 
+define void @invoke_of_noreturn() personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+; CHECK-LABEL: @invoke_of_noreturn(
+; CHECK-NEXT:  entry:
+; CHECK-NEXT:    invoke void @simple_throw()
+; CHECK-NEXT:    to label [[INVOKE_CONT:%.*]] unwind label [[LPAD:%.*]]
+; CHECK:       invoke.cont:
+; CHECK-NEXT:    call void @sideeffect(i32 0)
+; CHECK-NEXT:    ret void
+; CHECK:       lpad:
+; CHECK-NEXT:    [[EH:%.*]] = landingpad { i8*, i32 }
+; CHECK-NEXT:    cleanup
+; CHECK-NEXT:    call void @sideeffect(i32 1)
+; CHECK-NEXT:    resume { i8*, i32 } [[EH]]
+;
+entry:
+  invoke void @simple_throw() to label %invoke.cont unwind label %lpad
+
+invoke.cont:
+  call void @sideeffect(i32 0)
+  ret void
+
+lpad:
+  %eh = landingpad { i8*, i32 } cleanup
+  call void @sideeffect(i32 1)
+  resume { i8*, i32 } %eh
+}
+
+define void @invoke_of_nounwind() personality i8* bitcast (i32 (...)* @__gxx_personality_v0 to i8*) {
+; CHECK-LABEL: @invoke_of_nounwind(
+; CHECK-NEXT:  entry:
+; CHECK-NEXT:    call void @simple_return()
+; CHECK-NEXT:    call void @sideeffect(i32 0)
+; CHECK-NEXT:    ret void
+;
+entry:
+  invoke void @simple_return() to label %invoke.cont unwind label %lpad
+
+invoke.cont:
+  call void @sideeffect(i32 0)
+  ret void
+
+lpad:
+  %eh = landingpad { i8*, i32 } cleanup
+  call void @sideeffect(i32 1)
+  resume { i8*, i32 } %eh
+}
+
+declare void @simple_throw() noreturn
+declare void @simple_return() nounwind
+declare void @sideeffect(i32 )
+
 attributes #0 = { null_pointer_is_valid }

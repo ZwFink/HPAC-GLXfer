@@ -1918,7 +1918,7 @@ template <class ELFT> void Writer<ELFT>::finalizeSections() {
             scanRelocations<ELFT>(*sec);
       }
 
-      reportUndefinedSymbols<ELFT>();
+      reportUndefinedSymbols();
       postScanRelocations();
     }
   }

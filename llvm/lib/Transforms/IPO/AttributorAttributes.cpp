@@ -3675,7 +3675,7 @@ struct AAIsDeadCallSiteArgument : public AAIsDeadValueImpl {
 
 struct AAIsDeadCallSiteReturned : public AAIsDeadFloating {
   AAIsDeadCallSiteReturned(const IRPosition &IRP, Attributor &A)
-      : AAIsDeadFloating(IRP, A), IsAssumedSideEffectFree(true) {}
+      : AAIsDeadFloating(IRP, A) {}
 
   /// See AAIsDead::isAssumedDead().
   bool isAssumedDead() const override {
@@ -3721,7 +3721,7 @@ struct AAIsDeadCallSiteReturned : public AAIsDeadFloating {
   }
 
 private:
-  bool IsAssumedSideEffectFree;
+  bool IsAssumedSideEffectFree = true;
 };
 
 struct AAIsDeadReturned : public AAIsDeadValueImpl {

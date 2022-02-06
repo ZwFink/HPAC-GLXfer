@@ -1908,6 +1908,8 @@ private:
   ParseLambdaIntroducer(LambdaIntroducer &Intro,
                         LambdaIntroducerTentativeParse *Tentative = nullptr);
   ExprResult ParseLambdaExpressionAfterIntroducer(LambdaIntroducer &Intro);
+  void ParseLambdaLexedGNUAttributeArgs(LateParsedAttribute &LA,
+                                        ParsedAttributes &Attrs, Declarator &D);
 
   //===--------------------------------------------------------------------===//
   // C++ 5.2p1: C++ Casts

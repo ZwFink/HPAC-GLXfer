@@ -53,11 +53,6 @@ static const RISCVSupportedExtension SupportedExtensions[] = {
     {"zfhmin", RISCVExtensionVersion{1, 0}},
     {"zfh", RISCVExtensionVersion{1, 0}},
 
-    {"zfinx", RISCVExtensionVersion{1, 0}},
-    {"zdinx", RISCVExtensionVersion{1, 0}},
-    {"zhinxmin", RISCVExtensionVersion{1, 0}},
-    {"zhinx", RISCVExtensionVersion{1, 0}},
-
     {"zba", RISCVExtensionVersion{1, 0}},
     {"zbb", RISCVExtensionVersion{1, 0}},
     {"zbc", RISCVExtensionVersion{1, 0}},
@@ -693,13 +688,9 @@ Error RISCVISAInfo::checkDependency() {
   bool HasE = Exts.count("e") != 0;
   bool HasD = Exts.count("d") != 0;
   bool HasF = Exts.count("f") != 0;
-  bool HasZfinx = Exts.count("zfinx") != 0;
-  bool HasZdinx = Exts.count("zdinx") != 0;
-  bool HasZve32x = Exts.count("zve32x") != 0;
+  bool HasVector = Exts.count("zve32x") != 0;
   bool HasZve32f = Exts.count("zve32f") != 0;
   bool HasZve64d = Exts.count("zve64d") != 0;
-  bool HasV = Exts.count("v") != 0;
-  bool HasVector = HasZve32x || HasV;
   bool HasZvl = MinVLen != 0;
 
   if (HasE && !IsRv32)
@@ -715,15 +706,17 @@ Error RISCVISAInfo::checkDependency() {
     return createStringError(errc::invalid_argument,
                              "d requires f extension to also be specified");
 
-  if (HasZve32f && !HasF && !HasZfinx)
+  // FIXME: Consider Zfinx in the future
+  if (HasZve32f && !HasF)
     return createStringError(
         errc::invalid_argument,
-        "zve32f requires f or zfinx extension to also be specified");
+        "zve32f requires f extension to also be specified");
 
-  if (HasZve64d && !HasD && !HasZdinx)
+  // FIXME: Consider Zdinx in the future
+  if (HasZve64d && !HasD)
     return createStringError(
         errc::invalid_argument,
-        "zve64d requires d or zdinx extension to also be specified");
+        "zve64d requires d extension to also be specified");
 
   if (HasZvl && !HasVector)
     return createStringError(
@@ -737,12 +730,9 @@ Error RISCVISAInfo::checkDependency() {
   return Error::success();
 }
 
-static const char *ImpliedExtsV[] = {"zvl128b", "f", "d"};
+static const char *ImpliedExtsV[] = {"zvl128b", "zve64d", "f", "d"};
 static const char *ImpliedExtsZfhmin[] = {"f"};
 static const char *ImpliedExtsZfh[] = {"f"};
-static const char *ImpliedExtsZdinx[] = {"zfinx"};
-static const char *ImpliedExtsZhinxmin[] = {"zfinx"};
-static const char *ImpliedExtsZhinx[] = {"zfinx"};
 static const char *ImpliedExtsZve64d[] = {"zve64f"};
 static const char *ImpliedExtsZve64f[] = {"zve64x", "zve32f"};
 static const char *ImpliedExtsZve64x[] = {"zve32x", "zvl64b"};
@@ -777,11 +767,8 @@ struct ImpliedExtsEntry {
 // Note: The table needs to be sorted by name.
 static constexpr ImpliedExtsEntry ImpliedExts[] = {
     {{"v"}, {ImpliedExtsV}},
-    {{"zdinx"}, {ImpliedExtsZdinx}},
     {{"zfh"}, {ImpliedExtsZfh}},
     {{"zfhmin"}, {ImpliedExtsZfhmin}},
-    {{"zhinx"}, {ImpliedExtsZhinx}},
-    {{"zhinxmin"}, {ImpliedExtsZhinxmin}},
     {{"zk"}, {ImpliedExtsZk}},
     {{"zkn"}, {ImpliedExtsZkn}},
     {{"zks"}, {ImpliedExtsZks}},
@@ -874,11 +861,6 @@ void RISCVISAInfo::updateMaxELen() {
       unsigned ZveELen;
       ExtName.getAsInteger(10, ZveELen);
       MaxELen = std::max(MaxELen, ZveELen);
-    }
-    if (ExtName == "v") {
-      MaxELenFp = 64;
-      MaxELen = 64;
-      return;
     }
   }
 }

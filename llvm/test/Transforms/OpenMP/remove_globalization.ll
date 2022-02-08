@@ -79,7 +79,7 @@ define internal void @bar() {
 ; CHECK-SAME: () #[[ATTR0]] {
 ; CHECK-NEXT:  entry:
 ; CHECK-NEXT:    [[TMP0:%.*]] = call i8* @__kmpc_alloc_shared(i64 noundef 4) #[[ATTR4]], !dbg [[DBG8:![0-9]+]]
-; CHECK-NEXT:    call void @share(i8* nofree writeonly [[TMP0]]) #[[ATTR5:[0-9]+]]
+; CHECK-NEXT:    call void @share(i8* nofree writeonly [[TMP0]]) #[[ATTR5:[0-9]+]], !dbg [[DBG8]]
 ; CHECK-NEXT:    call void @__kmpc_free_shared(i8* [[TMP0]], i64 noundef 4) #[[ATTR4]]
 ; CHECK-NEXT:    ret void
 ;
@@ -87,7 +87,7 @@ define internal void @bar() {
 ; CHECK-DISABLED-SAME: () #[[ATTR0]] {
 ; CHECK-DISABLED-NEXT:  entry:
 ; CHECK-DISABLED-NEXT:    [[TMP0:%.*]] = call i8* @__kmpc_alloc_shared(i64 noundef 4) #[[ATTR4]], !dbg [[DBG8:![0-9]+]]
-; CHECK-DISABLED-NEXT:    call void @share(i8* nofree writeonly [[TMP0]]) #[[ATTR5:[0-9]+]]
+; CHECK-DISABLED-NEXT:    call void @share(i8* nofree writeonly [[TMP0]]) #[[ATTR5:[0-9]+]], !dbg [[DBG8]]
 ; CHECK-DISABLED-NEXT:    call void @__kmpc_free_shared(i8* [[TMP0]], i64 noundef 4) #[[ATTR4]]
 ; CHECK-DISABLED-NEXT:    ret void
 ;

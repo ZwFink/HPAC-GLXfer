@@ -140,11 +140,8 @@ static int FindFirstDSOCallback(struct dl_phdr_info *info, size_t size,
   }
 
 #    if SANITIZER_LINUX
-  // Ignore vDSO. glibc versions earlier than 2.15 (and some patched
-  // by distributors) return an empty name for the vDSO entry, so
-  // detect this as well.
-  if (!info->dlpi_name[0] ||
-      internal_strncmp(info->dlpi_name, "linux-", sizeof("linux-") - 1) == 0)
+  // Ignore vDSO
+  if (internal_strncmp(info->dlpi_name, "linux-", sizeof("linux-") - 1) == 0)
     return 0;
 #    endif
 

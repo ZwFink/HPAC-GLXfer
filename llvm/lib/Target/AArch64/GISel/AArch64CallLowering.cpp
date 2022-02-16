@@ -18,6 +18,7 @@
 #include "AArch64Subtarget.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Analysis/ObjCARCUtil.h"
 #include "llvm/CodeGen/Analysis.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
@@ -1127,22 +1128,28 @@ bool AArch64CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
 
   // Create a temporarily-floating call instruction so we can add the implicit
   // uses of arg registers.
-  const AArch64Subtarget &Subtarget = MF.getSubtarget<AArch64Subtarget>();
+
+  // Calls with operand bundle "clang.arc.attachedcall" are special. They should
+  // be expanded to the call, directly followed by a special marker sequence and
+  // a call to an ObjC library function.
   unsigned Opc = 0;
-  // A call to a returns twice function like setjmp must be followed by a bti
-  // instruction.
-  if (Info.CB && Info.CB->getAttributes().hasFnAttr(Attribute::ReturnsTwice) &&
-      !Subtarget.noBTIAtReturnTwice() &&
-      MF.getInfo<AArch64FunctionInfo>()->branchTargetEnforcement())
-    Opc = AArch64::BLR_BTI;
+  if (Info.CB && objcarc::hasAttachedCallOpBundle(Info.CB))
+    Opc = AArch64::BLR_RVMARKER;
   else
     Opc = getCallOpcode(MF, Info.Callee.isReg(), false);
 
   auto MIB = MIRBuilder.buildInstrNoInsert(Opc);
+  if (Opc == AArch64::BLR_RVMARKER) {
+    // Add a target global address for the retainRV/claimRV runtime function
+    // just before the call target.
+    Function *ARCFn = *objcarc::getAttachedARCFunction(Info.CB);
+    MIB.addGlobalAddress(ARCFn);
+  }
   MIB.add(Info.Callee);
 
   // Tell the call which registers are clobbered.
   const uint32_t *Mask;
+  const AArch64Subtarget &Subtarget = MF.getSubtarget<AArch64Subtarget>();
   const auto *TRI = Subtarget.getRegisterInfo();
 
   AArch64OutgoingValueAssigner Assigner(AssignFnFixed, AssignFnVarArg,

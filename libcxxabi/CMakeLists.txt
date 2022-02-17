@@ -121,7 +121,9 @@ endif()
 option(LIBCXXABI_INCLUDE_TESTS "Generate build targets for the libc++abi unit tests." ${LLVM_INCLUDE_TESTS})
 set(LIBCXXABI_LIBDIR_SUFFIX "${LLVM_LIBDIR_SUFFIX}" CACHE STRING
     "Define suffix of library directory name (32/64)")
+option(LIBCXXABI_INSTALL_HEADERS "Install the libc++abi headers." ON)
 option(LIBCXXABI_INSTALL_LIBRARY "Install the libc++abi library." ON)
+set(LIBCXXABI_INSTALL_INCLUDE_DIR "include/c++/v1" CACHE PATH "Path to install the libc++abi headers at.")
 
 if(CMAKE_CXX_COMPILER_TARGET)
   set(LIBCXXABI_DEFAULT_TARGET_TRIPLE "${CMAKE_CXX_COMPILER_TARGET}")
@@ -531,7 +533,6 @@ set(LIBCXXABI_LIBUNWIND_INCLUDES "${LIBCXXABI_LIBUNWIND_INCLUDES}" CACHE PATH
 set(LIBCXXABI_LIBUNWIND_PATH "${LIBCXXABI_LIBUNWIND_PATH}" CACHE PATH
     "Specify path to libunwind source." FORCE)
 
-include_directories(include)
 if (LIBCXXABI_USE_LLVM_UNWINDER OR LLVM_NATIVE_ARCH MATCHES ARM)
   find_path(LIBCXXABI_LIBUNWIND_INCLUDES_INTERNAL libunwind.h
     PATHS ${LIBCXXABI_LIBUNWIND_INCLUDES}
@@ -555,6 +556,7 @@ endif()
 
 # Add source code. This also contains all of the logic for deciding linker flags
 # soname, etc...
+add_subdirectory(include)
 add_subdirectory(src)
 
 if (LIBCXXABI_INCLUDE_TESTS)

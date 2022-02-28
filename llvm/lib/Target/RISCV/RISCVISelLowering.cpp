@@ -1031,8 +1031,10 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   setTargetDAGCombine(ISD::AND);
   setTargetDAGCombine(ISD::OR);
   setTargetDAGCombine(ISD::XOR);
-  setTargetDAGCombine(ISD::ROTL);
-  setTargetDAGCombine(ISD::ROTR);
+  if (Subtarget.hasStdExtZbp()) {
+    setTargetDAGCombine(ISD::ROTL);
+    setTargetDAGCombine(ISD::ROTR);
+  }
   setTargetDAGCombine(ISD::ANY_EXTEND);
   setTargetDAGCombine(ISD::INTRINSIC_WO_CHAIN);
   if (Subtarget.hasStdExtZfh())
@@ -7314,7 +7316,8 @@ static SDValue transformAddShlImm(SDNode *N, SelectionDAG &DAG,
 // ROTL ((GREV x, 24), 16) -> (GREVI x, 8)
 // RORW ((GREVW x, 24), 16) -> (GREVIW x, 8)
 // ROLW ((GREVW x, 24), 16) -> (GREVIW x, 8)
-static SDValue combineROTR_ROTL_RORW_ROLW(SDNode *N, SelectionDAG &DAG) {
+static SDValue combineROTR_ROTL_RORW_ROLW(SDNode *N, SelectionDAG &DAG,
+                                          const RISCVSubtarget &Subtarget) {
   assert((N->getOpcode() == ISD::ROTR || N->getOpcode() == ISD::ROTL ||
           N->getOpcode() == RISCVISD::RORW ||
           N->getOpcode() == RISCVISD::ROLW) &&
@@ -7322,6 +7325,9 @@ static SDValue combineROTR_ROTL_RORW_ROLW(SDNode *N, SelectionDAG &DAG) {
   SDValue Src = N->getOperand(0);
   SDLoc DL(N);
   unsigned Opc;
+
+  if (!Subtarget.hasStdExtZbp())
+    return SDValue();
 
   if ((N->getOpcode() == ISD::ROTR || N->getOpcode() == ISD::ROTL) &&
       Src.getOpcode() == RISCVISD::GREV)
@@ -8090,7 +8096,7 @@ SDValue RISCVTargetLowering::PerformDAGCombine(SDNode *N,
         return SDValue(N, 0);
     }
 
-    return combineROTR_ROTL_RORW_ROLW(N, DAG);
+    return combineROTR_ROTL_RORW_ROLW(N, DAG, Subtarget);
   }
   case RISCVISD::CLZW:
   case RISCVISD::CTZW: {

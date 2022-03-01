@@ -1931,27 +1931,37 @@ static Optional<VIDSequence> isSimpleVIDSequence(SDValue Op) {
       // A zero-value value difference means that we're somewhere in the middle
       // of a fractional step, e.g. <0,0,0*,0,1,1,1,1>. Wait until we notice a
       // step change before evaluating the sequence.
-      if (ValDiff == 0)
-        continue;
+      if (ValDiff != 0) {
+        int64_t Remainder = ValDiff % IdxDiff;
+        // Normalize the step if it's greater than 1.
+        if (Remainder != ValDiff) {
+          // The difference must cleanly divide the element span.
+          if (Remainder != 0)
+            return None;
+          ValDiff /= IdxDiff;
+          IdxDiff = 1;
+        }
 
-      int64_t Remainder = ValDiff % IdxDiff;
-      // Normalize the step if it's greater than 1.
-      if (Remainder != ValDiff) {
-        // The difference must cleanly divide the element span.
-        if (Remainder != 0)
+        if (!SeqStepNum)
+          SeqStepNum = ValDiff;
+        else if (ValDiff != SeqStepNum)
           return None;
-        ValDiff /= IdxDiff;
-        IdxDiff = 1;
+
+        if (!SeqStepDenom)
+          SeqStepDenom = IdxDiff;
+        else if (IdxDiff != *SeqStepDenom)
+          return None;
       }
+    }
 
-      if (!SeqStepNum)
-        SeqStepNum = ValDiff;
-      else if (ValDiff != SeqStepNum)
-        return None;
-
-      if (!SeqStepDenom)
-        SeqStepDenom = IdxDiff;
-      else if (IdxDiff != *SeqStepDenom)
+    // Record and/or check any addend.
+    if (SeqStepNum && SeqStepDenom) {
+      uint64_t ExpectedVal =
+          (int64_t)(Idx * (uint64_t)*SeqStepNum) / *SeqStepDenom;
+      int64_t Addend = SignExtend64(Val - ExpectedVal, EltSizeInBits);
+      if (!SeqAddend)
+        SeqAddend = Addend;
+      else if (SeqAddend != Addend)
         return None;
     }
 
@@ -1959,28 +1969,10 @@ static Optional<VIDSequence> isSimpleVIDSequence(SDValue Op) {
     if (!PrevElt || PrevElt->first != Val)
       PrevElt = std::make_pair(Val, Idx);
   }
-
-  // We need to have logged a step for this to count as a legal index sequence.
-  if (!SeqStepNum || !SeqStepDenom)
+  // We need to have logged both a step and an addend for this to count as
+  // a legal index sequence.
+  if (!SeqStepNum || !SeqStepDenom || !SeqAddend)
     return None;
-
-  // Loop back through the sequence and validate elements we might have skipped
-  // while waiting for a valid step. While doing this, log any sequence addend.
-  for (unsigned Idx = 0; Idx < NumElts; Idx++) {
-    if (Op.getOperand(Idx).isUndef())
-      continue;
-    uint64_t Val = Op.getConstantOperandVal(Idx) &
-                   maskTrailingOnes<uint64_t>(EltSizeInBits);
-    uint64_t ExpectedVal =
-        (int64_t)(Idx * (uint64_t)*SeqStepNum) / *SeqStepDenom;
-    int64_t Addend = SignExtend64(Val - ExpectedVal, EltSizeInBits);
-    if (!SeqAddend)
-      SeqAddend = Addend;
-    else if (Addend != SeqAddend)
-      return None;
-  }
-
-  assert(SeqAddend && "Must have an addend if we have a step");
 
   return VIDSequence{*SeqStepNum, *SeqStepDenom, *SeqAddend};
 }
@@ -2177,8 +2169,7 @@ static SDValue lowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG,
     // a single addi instruction.
     if (((StepOpcode == ISD::MUL && isInt<12>(SplatStepVal)) ||
          (StepOpcode == ISD::SHL && isUInt<5>(SplatStepVal))) &&
-        isPowerOf2_32(StepDenominator) &&
-        (SplatStepVal >= 0 || StepDenominator == 1) && isInt<5>(Addend)) {
+        isPowerOf2_32(StepDenominator) && isInt<5>(Addend)) {
       SDValue VID = DAG.getNode(RISCVISD::VID_VL, DL, ContainerVT, Mask, VL);
       // Convert right out of the scalable type so we can use standard ISD
       // nodes for the rest of the computation. If we used scalable types with
@@ -11024,13 +11015,24 @@ RISCVTargetLowering::getRegForInlineAsmConstraint(const TargetRegisterInfo *TRI,
   std::pair<Register, const TargetRegisterClass *> Res =
       TargetLowering::getRegForInlineAsmConstraint(TRI, Constraint, VT);
 
-  // If we picked one of the Zfinx register classes, remap it to the GPR class.
-  // FIXME: When Zfinx is supported in CodeGen this will need to take the
-  // Subtarget into account.
-  if (Res.second == &RISCV::GPRF16RegClass ||
-      Res.second == &RISCV::GPRF32RegClass ||
-      Res.second == &RISCV::GPRF64RegClass)
-    return std::make_pair(Res.first, &RISCV::GPRRegClass);
+  if (Res.second == &RISCV::GPRF32RegClass) {
+    if (!Subtarget.is64Bit() || VT == MVT::Other)
+      return std::make_pair(Res.first, &RISCV::GPRRegClass);
+    return std::make_pair(0, nullptr);
+  }
+
+  if (Res.second == &RISCV::GPRF64RegClass ||
+      Res.second == &RISCV::GPRPF64RegClass) {
+    if (Subtarget.is64Bit() || VT == MVT::Other)
+      return std::make_pair(Res.first, &RISCV::GPRRegClass);
+    return std::make_pair(0, nullptr);
+  }
+
+  if (Res.second == &RISCV::GPRF16RegClass) {
+    if (VT == MVT::Other)
+      return std::make_pair(Res.first, &RISCV::GPRRegClass);
+    return std::make_pair(0, nullptr);
+  }
 
   return Res;
 }

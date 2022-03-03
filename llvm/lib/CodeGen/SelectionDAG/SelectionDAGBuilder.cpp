@@ -8289,7 +8289,7 @@ public:
     // accessed type.
     if (isIndirect) {
       OpTy = ParamElemType;
-      assert(OpTy && "Indirect opernad must have elementtype attribute");
+      assert(OpTy && "Indirect operand must have elementtype attribute");
     }
 
     // Look for vector wrapped in a struct. e.g. { <16 x i8> }.

@@ -60,7 +60,7 @@ private:
 
 template<class T, size_t extent, class container>
 std::span<T, extent> createImplicitSpan(container c) {
-    return {c}; // expected-error {{chosen constructor is explicit in copy-initialization}}
+    return {c}; // expected-error-re {{no matching constructor for initialization of 'std::span<{{.+}}>'}}
 }
 
 int main(int, char**)

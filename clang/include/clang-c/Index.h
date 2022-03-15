@@ -2600,9 +2600,13 @@ enum CXCursorKind {
    */
   CXCursor_OMPGenericLoopDirective = 295,
 
+  /** OpenMP teams loop directive.
+   */
+  CXCursor_OMPTeamsGenericLoopDirective = 296,
+
   /** Approx directive.
    */
-  CXCursor_ApproxDirective = 296,
+  CXCursor_ApproxDirective = 297,
 
   CXCursor_LastStmt = CXCursor_ApproxDirective,
 

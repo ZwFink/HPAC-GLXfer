@@ -12956,7 +12956,8 @@ private:
                           const FunctionDecl *FD = nullptr);
 
 public:
-  void CheckFloatComparison(SourceLocation Loc, Expr *LHS, Expr *RHS);
+  void CheckFloatComparison(SourceLocation Loc, Expr *LHS, Expr *RHS,
+                            BinaryOperatorKind Opcode);
 
 private:
   void CheckImplicitConversions(Expr *E, SourceLocation CC = SourceLocation());

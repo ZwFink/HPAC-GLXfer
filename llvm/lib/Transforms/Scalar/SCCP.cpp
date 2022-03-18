@@ -549,7 +549,8 @@ bool llvm::runIPSCCP(
       MadeChanges |= removeNonFeasibleEdges(Solver, &BB, DTU, NewUnreachableBB);
 
     for (BasicBlock *DeadBB : BlocksToErase)
-      DTU.deleteBB(DeadBB);
+      if (!DeadBB->hasAddressTaken())
+        DTU.deleteBB(DeadBB);
 
     for (BasicBlock &BB : F) {
       for (Instruction &Inst : llvm::make_early_inc_range(BB)) {

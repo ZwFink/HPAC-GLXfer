@@ -2608,9 +2608,13 @@ enum CXCursorKind {
    */
   CXCursor_OMPTargetTeamsGenericLoopDirective = 297,
 
+  /** OpenMP parallel loop directive.
+   */
+  CXCursor_OMPParallelGenericLoopDirective = 298,
+
   /** Approx directive.
    */
-  CXCursor_ApproxDirective = 297,
+  CXCursor_ApproxDirective = 299,
 
   CXCursor_LastStmt = CXCursor_ApproxDirective,
 

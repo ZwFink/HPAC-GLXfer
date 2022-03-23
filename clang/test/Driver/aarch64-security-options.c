@@ -27,7 +27,8 @@
 // RUN: %clang -target aarch64--none-eabi -c %s -### -mbranch-protection=bar     2>&1 | \
 // RUN: FileCheck %s --check-prefix=BAD-BP-PROTECTION --check-prefix=WARN
 
-// RUN: %clang -target aarch64--none-eabi -### -o /dev/null -mbranch-protection=standard /dev/null 2>&1 | \
+// RUN: %clang -target aarch64--none-eabi -o %t-main.o -mbranch-protection=standard -c %S/Inputs/main.c
+// RUN: %clang -target aarch64--none-eabi -o %t-main -mbranch-protection=standard %t-main.o 2>&1 | \
 // RUN: FileCheck --allow-empty %s --check-prefix=LINKER-DRIVER
 
 // WARN-NOT: warning: ignoring '-mbranch-protection=' option because the 'aarch64' architecture does not support it [-Wbranch-protection]

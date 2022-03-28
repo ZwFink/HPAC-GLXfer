@@ -2648,6 +2648,9 @@ static void GenerateFrontendArgs(const FrontendOptions &Opts,
     case Language::LLVM_IR:
       Lang = "ir";
       break;
+    case Language::HLSL:
+      Lang = "hlsl";
+      break;
     }
 
     GenerateArg(Args, OPT_x,
@@ -2834,6 +2837,7 @@ static bool ParseFrontendArgs(FrontendOptions &Opts, ArgList &Args,
                 .Case("objective-c", Language::ObjC)
                 .Case("objective-c++", Language::ObjCXX)
                 .Case("renderscript", Language::RenderScript)
+                .Case("hlsl", Language::HLSL)
                 .Default(Language::Unknown);
 
     // "objc[++]-cpp-output" is an acceptable synonym for
@@ -3245,6 +3249,9 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
     case Language::HIP:
       LangStd = LangStandard::lang_hip;
       break;
+    case Language::HLSL:
+      LangStd = LangStandard::lang_hlsl2021;
+      break;
     }
   }
 
@@ -3266,6 +3273,8 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
   Opts.HexFloats = Std.hasHexFloats();
   Opts.ImplicitInt = Std.hasImplicitInt();
 
+  Opts.HLSL = IK.getLanguage() == Language::HLSL;
+
   // Set OpenCL Version.
   Opts.OpenCL = Std.isOpenCL();
   if (LangStd == LangStandard::lang_opencl10)
@@ -3282,6 +3291,18 @@ void CompilerInvocation::setLangDefaults(LangOptions &Opts, InputKind IK,
     Opts.OpenCLCPlusPlusVersion = 100;
   else if (LangStd == LangStandard::lang_openclcpp2021)
     Opts.OpenCLCPlusPlusVersion = 202100;
+  else if (LangStd == LangStandard::lang_hlsl2015)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_2015;
+  else if (LangStd == LangStandard::lang_hlsl2016)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_2016;
+  else if (LangStd == LangStandard::lang_hlsl2017)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_2017;
+  else if (LangStd == LangStandard::lang_hlsl2018)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_2018;
+  else if (LangStd == LangStandard::lang_hlsl2021)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_2021;
+  else if (LangStd == LangStandard::lang_hlsl202x)
+    Opts.HLSLVersion = (unsigned)LangOptions::HLSL_202x;
 
   // OpenCL has some additional defaults.
   if (Opts.OpenCL) {
@@ -3366,6 +3387,9 @@ static bool IsInputCompatibleWithStandard(InputKind IK,
     // FIXME: The -std= value is not ignored; it affects the tokenization
     // and preprocessing rules if we're preprocessing this asm input.
     return true;
+
+  case Language::HLSL:
+    return S.getLanguage() == Language::HLSL;
   }
 
   llvm_unreachable("unexpected input language");
@@ -3397,6 +3421,9 @@ static StringRef GetInputKindName(InputKind IK) {
     return "Asm";
   case Language::LLVM_IR:
     return "LLVM IR";
+
+  case Language::HLSL:
+    return "HLSL";
 
   case Language::Unknown:
     break;

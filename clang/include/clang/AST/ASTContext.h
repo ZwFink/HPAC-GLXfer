@@ -1132,7 +1132,6 @@ public:
   CanQualType OCLSamplerTy, OCLEventTy, OCLClkEventTy;
   CanQualType OCLQueueTy, OCLReserveIDTy;
   CanQualType IncompleteMatrixIdxTy;
-  CanQualType ApproxArraySectionTy;
   CanQualType OMPArraySectionTy, OMPArrayShapingTy, OMPIteratorTy;
 #define EXT_OPAQUE_TYPE(ExtType, Id, Ext) \
   CanQualType Id##Ty;
@@ -3291,10 +3290,10 @@ public:
   OMPTraitInfo &getNewOMPTraitInfo();
 
   /// Whether a C++ static variable or CUDA/HIP kernel may be externalized.
-  bool mayExternalizeStaticVar(const Decl *D) const;
+  bool mayExternalize(const Decl *D) const;
 
   /// Whether a C++ static variable or CUDA/HIP kernel should be externalized.
-  bool shouldExternalizeStaticVar(const Decl *D) const;
+  bool shouldExternalize(const Decl *D) const;
 
   StringRef getCUIDHash() const;
 

@@ -13,6 +13,7 @@
 // XFAIL: LIBCXX-AIX-FIXME
 
 // XFAIL: glibc-old-ru_RU-decimal-point
+// XFAIL: LIBCXX-AIX-FIXME
 
 // <locale>
 

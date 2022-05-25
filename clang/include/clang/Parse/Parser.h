@@ -439,6 +439,7 @@ class Parser : public CodeCompletionHandler {
   /// inApproxScope - When this is true, we are parsing approximate
   /// pragmas. By default this value is false.
   bool inApproxScope;
+  OMPClause *ParseOpenMPFailClause(OMPClause *Clause);
 
 public:
   Parser(Preprocessor &PP, Sema &Actions, bool SkipFunctionBodies);

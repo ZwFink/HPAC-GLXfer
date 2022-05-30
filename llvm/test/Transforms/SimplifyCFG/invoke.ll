@@ -62,7 +62,7 @@ define i8* @f2_no_null_opt() nounwind uwtable ssp #0 personality i8* bitcast (i3
 ; CHECK-NEXT:    [[TMP0:%.*]] = landingpad { i8*, i32 }
 ; CHECK-NEXT:    filter [0 x i8*] zeroinitializer
 ; CHECK-NEXT:    [[TMP1:%.*]] = extractvalue { i8*, i32 } [[TMP0]], 0
-; CHECK-NEXT:    tail call void @__cxa_call_unexpected(i8* [[TMP1]]) #[[ATTR6:[0-9]+]]
+; CHECK-NEXT:    tail call void @__cxa_call_unexpected(i8* [[TMP1]]) #[[ATTR7:[0-9]+]]
 ; CHECK-NEXT:    unreachable
 ;
 entry:
@@ -158,7 +158,7 @@ define i32 @f5(i1 %cond, i8* %a, i8* %b) personality i8* bitcast (i32 (...)* @__
 ; CHECK:       lpad:
 ; CHECK-NEXT:    [[TMP0:%.*]] = landingpad { i8*, i32 }
 ; CHECK-NEXT:    filter [0 x i8*] zeroinitializer
-; CHECK-NEXT:    tail call void @__cxa_call_unexpected(i8* [[A:%.*]]) #[[ATTR6]]
+; CHECK-NEXT:    tail call void @__cxa_call_unexpected(i8* [[A:%.*]]) #[[ATTR7]]
 ; CHECK-NEXT:    unreachable
 ;
 entry:

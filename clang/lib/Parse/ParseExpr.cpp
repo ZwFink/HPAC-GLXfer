@@ -30,6 +30,7 @@
 #include "clang/Sema/Scope.h"
 #include "clang/Sema/TypoCorrection.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Debug.h"
 using namespace clang;
 
 /// Simple precedence-based parser for binary/ternary operators.
@@ -1908,7 +1909,7 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       if (getLangOpts().CPlusPlus11 && Tok.is(tok::l_brace)) {
         Diag(Tok, diag::warn_cxx98_compat_generalized_initializer_lists);
         Idx = ParseBraceInitializer();
-      } else if (getLangOpts().OpenMP) {
+      } else if (getLangOpts().OpenMP || inApproxScope ) {
         ColonProtectionRAIIObject RAII(*this);
         // Parse [: or [ expr or [ expr :
         if (!Tok.is(tok::colon)) {
@@ -1944,6 +1945,13 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
       if (!LHS.isInvalid() && !Idx.isInvalid() && !Length.isInvalid() &&
           !Stride.isInvalid() && Tok.is(tok::r_square)) {
         if (ColonLocFirst.isValid() || ColonLocSecond.isValid()) {
+          if (inApproxScope){
+            assert(ColonLocFirst.isValid() && "Strided access not supported in HPAC");
+            LHS = Actions.ActOnApproxArraySectionExpr(LHS.get(), Loc, Idx.get(),
+                                                      ColonLocFirstLength.get(), RLoc);
+          }else{
+
+          }
           LHS = Actions.ActOnOMPArraySectionExpr(
               LHS.get(), Loc, Idx.get(), ColonLocFirst, ColonLocSecond,
               Length.get(), Stride.get(), RLoc);

@@ -1950,11 +1950,10 @@ Parser::ParsePostfixExpressionSuffix(ExprResult LHS) {
             LHS = Actions.ActOnApproxArraySectionExpr(LHS.get(), Loc, Idx.get(),
                                                       ColonLocFirstLength.get(), RLoc);
           }else{
-
+            LHS = Actions.ActOnOMPArraySectionExpr(
+                LHS.get(), Loc, Idx.get(), ColonLocFirst, ColonLocSecond,
+                Length.get(), Stride.get(), RLoc);
           }
-          LHS = Actions.ActOnOMPArraySectionExpr(
-              LHS.get(), Loc, Idx.get(), ColonLocFirst, ColonLocSecond,
-              Length.get(), Stride.get(), RLoc);
         } else {
           LHS = Actions.ActOnArraySubscriptExpr(getCurScope(), LHS.get(), Loc,
                                                 Idx.get(), RLoc);

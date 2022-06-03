@@ -2600,8 +2600,6 @@ enum CXCursorKind {
    */
   CXCursor_OMPGenericLoopDirective = 295,
 
-  CXCursor_LastStmt = CXCursor_OMPGenericLoopDirective,
-
   /** Approx directive.
    */
   CXCursor_ApproxDirective = 296,

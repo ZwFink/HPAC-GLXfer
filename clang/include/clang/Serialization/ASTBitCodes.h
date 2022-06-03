@@ -1485,12 +1485,6 @@ enum DeclCode {
   /// An LifetimeExtendedTemporaryDecl record.
   DECL_LIFETIME_EXTENDED_TEMPORARY,
 
-  /// An ApproxDecl record.
-  DECL_APPROX_CAPTUREDEXPR,
-
-  /// An OMPCapturedExprDecl record.
-  DECL_OMP_CAPTUREDEXPR,
-
   /// A RequiresExprBodyDecl record.
   DECL_REQUIRES_EXPR_BODY,
 
@@ -1512,7 +1506,10 @@ enum DeclCode {
   /// An OMPDeclareReductionDecl record.
   DECL_OMP_DECLARE_REDUCTION,
 
-  DECL_LAST = DECL_OMP_DECLARE_REDUCTION
+  /// An ApproxDecl record.
+  DECL_APPROX_CAPTUREDEXPR,
+
+  DECL_LAST = DECL_APPROX_CAPTUREDEXPR
 };
 
 /// Record codes for each kind of statement or expression.

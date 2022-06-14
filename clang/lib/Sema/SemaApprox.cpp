@@ -1421,7 +1421,9 @@ static bool checkApproxIterationSpace(
   //   for (range-decl: range-expr) structured-block
   auto *For = dyn_cast_or_null<ForStmt>(S);
   auto *CXXFor = dyn_cast_or_null<CXXForRangeStmt>(S);
+  auto *TargetDir = dyn_cast_or_null<OMPTargetParallelForDirective>(S);
 
+  assert((TargetDir || For || CXXFor) && "No loop or target statement");
   assert(((For && For->getBody()) || (CXXFor && CXXFor->getBody())) &&
          "No loop body.");
 
@@ -1847,7 +1849,21 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
       Stmt *LoopStmt = nullptr;
       if ((OMPLoopDir = dyn_cast<OMPLoopDirective>(AssociatedStmt))) {
         LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
+        printf("Stmt class name: %s\n", LoopStmt->getStmtClassName());
+        CapturedStmt *CS2 = nullptr;
+        if((CS2 = dyn_cast<CapturedStmt>(LoopStmt)))
+          {
+            LoopStmt = dyn_cast<ForStmt>(((CapturedStmt*)(CS2->getCapturedStmt()))->getCapturedStmt());
+            printf("Captured statement classname: %s\n", ((CapturedStmt*)(CS2->getCapturedStmt()))->getCapturedStmt()->getStmtClassName());
+          }
+        else
+          {
+            printf("Unable to cast statement '%s' to CapturedStmt\n", LoopStmt->getStmtClassName());
+          }
+        assert(LoopStmt && "Loop stmt associated iwth LoopDirective is null");
+        llvm::dbgs() << "Associated clause is an OpenMP loop\n";
       } else {
+        llvm::dbgs() << "Associated clause does NOT have an OpenMP loop\n";
         LoopStmt = AssociatedStmt;
         B.OMPParallelForDir = nullptr;
       }

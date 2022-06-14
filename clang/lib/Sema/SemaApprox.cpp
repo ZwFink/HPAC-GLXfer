@@ -1835,6 +1835,21 @@ static unsigned checkApproxLoop(Stmt *AStmt, Sema &SemaRef,
 }
 /* =========== End of Sema analysis for perforated loop ============= */
 
+Stmt *getOMPLoopStmt(OMPLoopDirective *OMPLoopDir)
+{
+  Stmt *LoopStmt = nullptr;
+  OMPTargetParallelForDirective *OMPTargetDir = nullptr;
+
+  LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
+
+  if ((OMPTargetDir = dyn_cast<OMPTargetParallelForDirective>(OMPLoopDir))) {
+    CapturedStmt *CS = dyn_cast<CapturedStmt>(LoopStmt);
+    CS = dyn_cast<CapturedStmt>(CS->getCapturedStmt());
+    LoopStmt = CS->getCapturedStmt();
+    }
+  return LoopStmt;
+}
+
 StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
                                       ArrayRef<ApproxClause *> Clauses,
                                       ApproxVarListLocTy &Locs) {
@@ -1848,22 +1863,8 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
     if(AC->getClauseKind() == CK_PERFO) {
       Stmt *LoopStmt = nullptr;
       if ((OMPLoopDir = dyn_cast<OMPLoopDirective>(AssociatedStmt))) {
-        LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
-        printf("Stmt class name: %s\n", LoopStmt->getStmtClassName());
-        CapturedStmt *CS2 = nullptr;
-        if((CS2 = dyn_cast<CapturedStmt>(LoopStmt)))
-          {
-            LoopStmt = dyn_cast<ForStmt>(((CapturedStmt*)(CS2->getCapturedStmt()))->getCapturedStmt());
-            printf("Captured statement classname: %s\n", ((CapturedStmt*)(CS2->getCapturedStmt()))->getCapturedStmt()->getStmtClassName());
-          }
-        else
-          {
-            printf("Unable to cast statement '%s' to CapturedStmt\n", LoopStmt->getStmtClassName());
-          }
-        assert(LoopStmt && "Loop stmt associated iwth LoopDirective is null");
-        llvm::dbgs() << "Associated clause is an OpenMP loop\n";
+        LoopStmt = getOMPLoopStmt(OMPLoopDir);
       } else {
-        llvm::dbgs() << "Associated clause does NOT have an OpenMP loop\n";
         LoopStmt = AssociatedStmt;
         B.OMPParallelForDir = nullptr;
       }
@@ -2123,7 +2124,7 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
       }
 
       SmallVector<Stmt *, 8> StmtList;
-      Stmt *LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
+      Stmt *LoopStmt = getOMPLoopStmt(OMPLoopDir);
       Stmt *LoopBody = nullptr;
       if (auto *For = dyn_cast<ForStmt>(LoopStmt)) {
         LoopBody = For->getBody();

@@ -768,6 +768,12 @@ void StmtPrinter::VisitOMPParallelMasterDirective(
   PrintOMPExecutableDirective(Node);
 }
 
+void StmtPrinter::VisitOMPParallelMaskedDirective(
+    OMPParallelMaskedDirective *Node) {
+  Indent() << "#pragma omp parallel masked";
+  PrintOMPExecutableDirective(Node);
+}
+
 void StmtPrinter::VisitOMPParallelSectionsDirective(
     OMPParallelSectionsDirective *Node) {
   Indent() << "#pragma omp parallel sections";

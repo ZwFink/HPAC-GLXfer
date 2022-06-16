@@ -2626,9 +2626,13 @@ enum CXCursorKind {
    */
   CXCursor_OMPTargetParallelGenericLoopDirective = 299,
 
+  /** OpenMP parallel masked directive.
+   */
+  CXCursor_OMPParallelMaskedDirective = 300,
+
   /** Approx directive.
    */
-  CXCursor_ApproxDirective = 300,
+  CXCursor_ApproxDirective = 301,
 
   CXCursor_LastStmt = CXCursor_ApproxDirective,
 
@@ -2638,7 +2642,7 @@ enum CXCursorKind {
    * The translation unit cursor exists primarily to act as the root
    * cursor for traversing the contents of a translation unit.
    */
-  CXCursor_TranslationUnit = 301,
+  CXCursor_TranslationUnit = 350,
 
   /* Attributes */
   CXCursor_FirstAttr = 400,

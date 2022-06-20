@@ -30,6 +30,7 @@ set(LLVM_LINK_COMPONENTS
 add_clang_library(clangCodeGen
   BackendUtil.cpp
   CGApproxRuntime.cpp
+  CGApproxRuntimeGPU.cpp
   CGAtomic.cpp
   CGBlocks.cpp
   CGBuiltin.cpp

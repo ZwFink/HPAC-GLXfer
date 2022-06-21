@@ -22,7 +22,7 @@ LIGHTCYAN='\033[1;36m'
 WHITE='\033[1;37m'
 
 clang_bin=$prefix/bin/clang
-approx_runtime_lib=$prefix/lib/libapprox.so
+approx_runtime_lib=$prefix/lib/libapprox.a
 
 
 if [ ! -f $clang_bin ]; then
@@ -39,7 +39,7 @@ if [ ! -f $clang_bin ]; then
     -DLLVM_OPTIMIZED_TABLEGEN='On' \
     -DCLANG_BUILD_EXAMPLES='On' \
     -DBUILD_SHARED_LIBS='On' \
-    -DLLVM_ENABLE_ASSERTIONS='On' \
+    -DLLVM_ENABLE_ASSERTIONS='Off' \
     ../llvm
 
     ninja -j $threads
@@ -60,6 +60,7 @@ if [ ! -f $approx_runtime_lib ]; then
   CC=clang CPP=clang++ cmake -G Ninja \
       -DCMAKE_INSTALL_PREFIX=$prefix \
       -DLLVM_EXTERNAL_CLANG_SOURCE_DIR=${current_dir}/clang/ \
+      -DLIBAPPROX_ENABLE_SHARED=0 \
       -DPACKAGE_VERSION=14.0.5 \
      ../approx
     ninja -j $threads

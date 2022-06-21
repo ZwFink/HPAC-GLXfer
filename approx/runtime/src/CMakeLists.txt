@@ -7,7 +7,8 @@ message("approx include is ${LIBAPPROX_INC_DIR}")
 
 set(LIBAPPROX_SOURCE_FILES
     approx_runtime.cpp
-    approx_dev_runtime.cpp
+    # approx_dev_runtime.cpp
+    approx_dev_runtime_cuda.cu
     approx_data_util.cpp
     approx_memoize_out.cpp
     approx_memoize_iact_in.cpp
@@ -21,7 +22,6 @@ include_directories(
     ${CLANG_SOURCE_INCLUDE}
 )
 
-
 #We might need to use CXX as linker.
 set(LIBAPPROX_LINKER_LANGUAGE C)
 add_library(approx ${LIBAPPROX_LIBRARY_KIND} ${LIBAPPROX_SOURCE_FILES})
@@ -29,7 +29,8 @@ add_library(approx ${LIBAPPROX_LIBRARY_KIND} ${LIBAPPROX_SOURCE_FILES})
 set_target_properties(approx PROPERTIES
     PREFIX "" SUFFIX "" OUTPUT_NAME "${LIBAPPROX_LIB_FILE}"
     LINK_FLAGS ""
-    LINKER_LANGUAGE ${LIBAPPROX_LINKER_LANGUAGE})
+    LINKER_LANGUAGE ${LIBAPPROX_LINKER_LANGUAGE}
+  CUDA_SEPARABLE_COMPILATION ON)
 
 target_link_libraries(approx PRIVATE ${CMAKE_DL_LIBS})
 

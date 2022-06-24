@@ -206,6 +206,7 @@ int omp_get_initial_device(void);
 void *omp_target_alloc(size_t size, int device_num);
 void omp_target_free(void *device_ptr, int device_num);
 int omp_target_is_present(const void *ptr, int device_num);
+void *omp_get_mapped_ptr(const void *ptr, int device_num);
 int omp_target_memcpy(void *dst, const void *src, size_t length,
                       size_t dst_offset, size_t src_offset, int dst_device,
                       int src_device);

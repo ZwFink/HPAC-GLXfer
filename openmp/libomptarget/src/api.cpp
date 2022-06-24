@@ -122,6 +122,41 @@ EXTERN int omp_target_is_present(const void *ptr, int device_num) {
   return rc;
 }
 
+EXTERN void* omp_get_mapped_ptr(const void *ptr, int device_num) {
+  TIMESCOPE();
+  DP("Call to get_mapped_ptr for device %d and address " DPxMOD "\n",
+     device_num, DPxPTR(ptr));
+
+  if (!ptr) {
+    DP("Call to omp_get_mapped_ptr with NULL ptr, returning null\n");
+    return nullptr;
+  }
+
+  if (device_num == omp_get_initial_device()) {
+    DP("ERROR: Call to omp_get_mapped_ptr on host, returning original pointer\n");
+    return const_cast<void*>(ptr);
+  }
+
+  PM->RTLsMtx.lock();
+  size_t DevicesSize = PM->Devices.size();
+  PM->RTLsMtx.unlock();
+  if (DevicesSize <= (size_t)device_num) {
+    DP("Call to omp_get_mapped_ptr with invalid device ID, returning "
+       "null\n");
+    return nullptr;
+  }
+
+  DeviceTy &Device = *PM->Devices[device_num];
+  bool IsLast; // not used
+  bool IsHostPtr;
+  TargetPointerResultTy TPR =
+      Device.getTgtPtrBegin(const_cast<void *>(ptr), 0, IsLast,
+                            /*UpdateRefCount=*/false,
+                            /*UseHoldRefCount=*/false, IsHostPtr);
+  return TPR.TargetPointer;
+}
+
+
 EXTERN int omp_target_memcpy(void *dst, const void *src, size_t length,
                              size_t dst_offset, size_t src_offset,
                              int dst_device, int src_device) {

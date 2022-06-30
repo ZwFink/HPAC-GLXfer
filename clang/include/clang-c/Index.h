@@ -2638,11 +2638,17 @@ enum CXCursorKind {
    */
   CXCursor_OMPMaskedTaskLoopSimdDirective = 302,
 
+  /** OpenMP parallel masked taskloop directive.
+   */
+  CXCursor_OMPParallelMaskedTaskLoopDirective = 303,
+
   /** Approx directive.
    */
-  CXCursor_ApproxDirective = 303,
+  CXCursor_ApproxDirective = 304,
 
   CXCursor_LastStmt = CXCursor_ApproxDirective,
+
+>>>>>>> [OpenMP] Initial parsing and sema support for 'parallel masked taskloop' construct
 
   /**
    * Cursor that represents the translation unit itself.

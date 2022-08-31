@@ -186,6 +186,7 @@ void resetDeviceTable(float thresh, int threads_per_block, int num_blocks, int n
   #else
 #pragma omp target enter data map(to:RTEnvd, RTEnvd.threshold[0:1], RTEnvd.tabNumEntries[0:1], RTEnvd.inputIdx[0:total_num_tables], RTEnvd.ReplacementData[0:replacement_data_size], RTEnvd.ClockIndexes[0:clock_data_size], RTEnvd.iTable[0:total_input_size], RTEnvd.oTable[0:total_output_size], RTEnvd.TableRP[0:1])
   #endif // APPROX_DEV_STATS
+  printf("Transferred table to device\n");
 }
 
   int getNThreadsPerWarp()
@@ -521,10 +522,10 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
 }
 
 
-void __approx_device_memo(void (*accurateFN)(void *), void *arg, int memo_type, void *region_info_in, void *inputs, int nInputs, void *region_info_out, void *outputs, int nOutputs)
+void __approx_device_memo(void (*accurateFN)(void *), void *arg, int memo_type, const void *region_info_in, void *inputs, int nInputs, const void *region_info_out, void *outputs, int nOutputs)
 {
-  approx_region_specification *in_reg = (approx_region_specification*) region_info_in;
-  approx_region_specification *out_reg = (approx_region_specification*) region_info_out;
+  const approx_region_specification *in_reg = (approx_region_specification*) region_info_in;
+  const approx_region_specification *out_reg = (approx_region_specification*) region_info_out;
   approx_var_ptr_t *ipts = (approx_var_ptr_t*) inputs;
   approx_var_ptr_t *opts = (approx_var_ptr_t*) outputs;
   int tid_global = omp_get_thread_num() + omp_get_team_num() * omp_get_num_threads();

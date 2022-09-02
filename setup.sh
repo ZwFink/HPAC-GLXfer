@@ -22,6 +22,7 @@ LIGHTCYAN='\033[1;36m'
 WHITE='\033[1;37m'
 
 clang_bin=$prefix/bin/clang
+#clang_bin=/dev/null
 #approx_runtime_lib=$prefix/lib/libapprox.so
 approx_runtime_lib=/dev/null
 
@@ -64,11 +65,16 @@ if [ ! -f $approx_runtime_lib ]; then
       -DPACKAGE_VERSION=15.0.0 \
 	  -DLIBAPPROX_ENABLE_SHARED=0 \
 	  -DDEV_STATS=0 \
+	  -DSHARED_MEMORY_SIZE=192 \
+	  -DTABLES_PER_WARP=1 \
      ../approx
     ninja -j $threads
     ninja -j $threads install
+	# we need this to access 'approx_region_specification' and 'approx_var_ptr_t' structs
+	cp ../approx/runtime/src/approx_internal.h "$prefix"/lib/clang/15.0.0/include
     popd
 fi
+exit
 pushd ./approx/approx_utilities/
 
 if [ ! -f 'original_src.tar.gz' ]; then

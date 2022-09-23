@@ -21,6 +21,7 @@
 #include "clang/AST/Type.h"
 #include "clang/Basic/SourceLocation.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/IR/GlobalVariable.h"
 
 namespace clang {
 namespace CodeGen {
@@ -52,8 +53,12 @@ enum DevApproxRTArgsIndex : uint {
   DevCapDataPtr,
   DevMemoDescr,
   DevDataDescIn,
+  DevAccessDescIn,
+  DevDataPtrIn,
   DevDataSizeIn,
   DevDataDescOut,
+  DevAccessDescOut,
+  DevDataPtrOut,
   DevDataSizeOut,
   DEV_ARG_END
 };
@@ -83,6 +88,7 @@ protected:
   ///        void* ptr;         // Ptr to data
   ///        size_t num_elem;   // Number of elements
   ///        size_t sz_elem;    // Size of elements in bytes
+  ///        size_t stride;    // Stride distance between subsequent values
   ///        int8_t data_type; // Type of data float/double/int etc.
   ///        uint8_t dir;       // Direction of data: in/out/inout
   ///    } approx_var_info_t;
@@ -101,9 +107,27 @@ protected:
   bool requiresInputs;
 
 protected:
+  /// VarRegionSpecTy is a struct containing info about the in/out/inout variables
+  /// of this region.
+  /// typedef struct approx_region_specification {
+  ///   const size_t sz_elem; // Size of elements in bytes
+  ///   const size_t num_elem; // Number of elements
+  ///   const size_t stride; // Stride distance between subsequent values
+  ///   const int8_t data_type; // Type of data float/double/int etc.
+  ///   const int8_t dir; // direction of data: in/out/inout
+  /// } approx_region_specification;
+  QualType VarRegionSpecTy;
+
+
+  /// VarAccessTy is a struct containing the pointer to a thread's input
+  /// typedef struct approx_var_ptr_t {
+  ///   void *ptr;
+  /// } approx_var_ptr_t;
+  QualType VarAccessTy;
+
   void CGApproxRuntimeEmitPerfoFn(CapturedStmt &CS, const ApproxLoopHelperExprs &LoopExprs, const ApproxPerfoClause &PC);
-  std::pair<llvm::Value *, llvm::Value *> CGApproxRuntimeEmitData(CodeGenFunction &CGF, llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *arrayName);
-  void getVarInfoType(ASTContext &C, QualType &VarInfoTy);
+  virtual std::pair<llvm::Value *, llvm::Value *> CGApproxRuntimeEmitData(CodeGenFunction &CGF, llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *arrayName);
+  virtual void getVarInfoType(ASTContext &C, QualType &VarInfoTy);
 
 public:
   CGApproxRuntime(CodeGenModule &CGM);
@@ -131,8 +155,33 @@ private:
   // Function type of the runtime interface call.
   llvm::FunctionType *RTFnTy;
 
+  llvm::GlobalVariable *RegionInfo;
+  llvm::GlobalVariable *AccessInfo;
+
+protected:
+  using CGApproxRuntime::CGApproxRuntimeEmitData;
+  std::tuple<llvm::Value *, llvm::Value *, llvm::Value *> CGApproxRuntimeEmitData(CodeGenFunction &CGF, llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *infoName, const char *ptrName);
+void CGApproxRuntimeEmitInitData(
+  CodeGenFunction &CGF,
+  llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, Address Base);
+  Address declareAccessArrays(CodeGenFunction &CGF,
+                           llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *name);
+  Address declarePtrArrays(CodeGenFunction &CGF,
+                           llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *name);
+
+
+std::tuple<llvm::Value *, llvm::Value*>
+CGApproxRuntimeGPUEmitData(
+    CodeGenFunction &CGF,
+    llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data,
+    Address VarPtrArray, const char *infoName);
+
+
+  void getVarInfoType(ASTContext &C, QualType &VarInfoTy) override;
+  void getVarAccessType(ASTContext &C, QualType &VarInfoTy);
 public:
   CGApproxRuntimeGPU(CodeGenModule &CGM);
+  ~CGApproxRuntimeGPU() = default;
   void CGApproxRuntimeEnterRegion(CodeGenFunction &CGF, CapturedStmt &CS) override;
   void CGApproxRuntimeEmitMemoInit(CodeGenFunction &CGF,
                                    ApproxMemoClause &MemoClause) override;

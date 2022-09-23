@@ -165,7 +165,7 @@ void convertTo(T *dest, void *src, size_t numElements,
 
 #pragma omp declare target
 template<typename T>
-void convertToSingleWithOffset(T *dest, void *src, size_t dest_offset,
+void convertToSingleWithOffset(T *dest, const void *src, size_t dest_offset,
                                size_t src_offset, ApproxType Type){
     switch (Type) {
 #define APPROX_TYPE(Enum, CType, nameOfType)                                   \
@@ -179,7 +179,7 @@ void convertToSingleWithOffset(T *dest, void *src, size_t dest_offset,
 }
 
 template<typename T>
-void convertFromSingleWithOffset(void *dest, T *src, size_t dest_offset,
+void convertFromSingleWithOffset(void *dest, const T *src, size_t dest_offset,
                                size_t src_offset, ApproxType Type){
     switch (Type) {
 #define APPROX_TYPE(Enum, CType, nameOfType)                                   \
@@ -282,6 +282,11 @@ public:
 template<typename T>
 void packVarToVec(approx_var_info_t *values, int num_values, T *vector){
   for (int i = 0; i < num_values; i++){
+    if(values[i].stride != 1)
+      {
+        printf("ERROR: Runtime support for strided input access is not supported\n");
+        abort();
+      }
     convertTo(vector, values[i].ptr, values[i].num_elem, (ApproxType)values[i].data_type);
     vector += values[i].num_elem;
   }

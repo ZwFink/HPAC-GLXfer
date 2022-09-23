@@ -24,6 +24,22 @@ if(DEV_STATS)
   add_compile_definitions(APPROX_DEV_STATS)
 endif()
 
+option(SHARED_MEMORY_SIZE "Amount of shared memory (in bytes) to use for reducing global memory traffic")
+if(SHARED_MEMORY_SIZE)
+  add_compile_definitions(SM_SZ_IN_BYTES=${SHARED_MEMORY_SIZE})
+else()
+  add_compile_definitions(SM_SZ_IN_BYTES=0)
+endif()
+
+option(TABLES_PER_WARP "Number of memoization input tables to store for each warp.")
+if(TABLES_PER_WARP)
+  add_compile_definitions(TABLES_PER_WARP=${TABLES_PER_WARP})
+else()
+  add_compile_definitions(TABLES_PER_WARP=2)
+endif()
+
+add_compile_definitions(NTHREADS_PER_WARP=32)
+
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS NO)

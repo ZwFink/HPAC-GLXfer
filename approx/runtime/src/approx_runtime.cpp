@@ -638,7 +638,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
   char states [32];
   char cur_index [32];
   char active_values[32];
-  real_t output_table[32];
+  real_t output_table[32*8];
   #pragma omp allocate(states) allocator(omp_pteam_mem_alloc)
   #pragma omp allocate(cur_index) allocator(omp_pteam_mem_alloc)
   #pragma omp allocate(active_values) allocator(omp_pteam_mem_alloc)
@@ -665,9 +665,9 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
   syncThreadsAligned();
 
   // NOTE: we will use predicted and active values as the same when the translation is done
-  for(int i = 0; i < omp_get_num_threads() / NTHREADS_IN_WARP; i++)
+  for(int h = 0; i < omp_get_num_threads() / NTHREADS_IN_WARP; h++)
     {
-      if(warpId == i)
+      if(warpId == h)
         {
           bool am_approx = states[threadInWarp] == APPROX;
           if(am_approx)

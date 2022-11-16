@@ -651,8 +651,6 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
   if(!init_done)
     {
 
-      if(tid_global == 0)
-        printf("Initializing!\n");
       // TODO: bank conflicts?
       states[threadInWarp] = ACCURATE;
       cur_index[threadInWarp] = 0;
@@ -991,18 +989,5 @@ void __approx_device_memo(void (*accurateFN)(void *), void *arg, int memo_type, 
       printf("ERROR: Incorrect memo type");
     }
 }
-#pragma omp end declare target
-
-#pragma omp begin declare target
-  void __approx_check_init(char init_done)
-  {
-    if(omp_get_thread_num() + omp_get_team_num() != 0)
-      return;
-    printf("%d\n", omp_get_num_threads());
-    if(init_done)
-      printf("Init is done!\n");
-    else
-      printf("Init is not done!\n");
-  }
 
 #pragma omp end declare target

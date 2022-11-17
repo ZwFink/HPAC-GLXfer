@@ -661,7 +661,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
   syncThreadsAligned();
 
   // NOTE: we will use predicted and active values as the same when the translation is done
-  for(int h = 0; i < omp_get_num_threads() / NTHREADS_IN_WARP; h++)
+  for(int h = 0; h < omp_get_num_threads() / NTHREADS_IN_WARP; h++)
     {
       if(warpId == h)
         {

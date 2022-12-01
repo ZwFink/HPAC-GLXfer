@@ -522,8 +522,14 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
 
 
 __attribute__((always_inline))
-void __approx_device_memo(void (*accurateFN)(void *), void *arg, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs)
+void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*), void *arg, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs)
 {
+  if(perfoFN)
+    {
+      perfoFN(arg);
+      return;
+    }
+
   const approx_region_specification *in_reg = (const approx_region_specification*) region_info_in;
   const approx_region_specification *out_reg = (const approx_region_specification*) region_info_out;
   const approx_var_access_t *ipts = (approx_var_access_t*) ipt_access;

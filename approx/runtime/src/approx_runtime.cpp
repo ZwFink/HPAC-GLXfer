@@ -35,6 +35,7 @@
 
 
 using namespace std;
+using namespace approx;
 
 #define MEMO_IN 1
 #define MEMO_OUT 2
@@ -512,10 +513,10 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   unsigned int shift = threads_per_table * table_in_warp;
   if(threads_per_table == NTHREADS_PER_WARP)
     shift = 0;
-  float max_dist_warp = reduceMaxImpl(my_mask, max_dist, shift);
-  unsigned int hasMax = warpBallot(my_mask, max_dist == max_dist_warp) >> shift;
+  float max_dist_warp = intr::reduceMaxImpl(my_mask, max_dist, shift);
+  unsigned int hasMax = intr::warpBallot(my_mask, max_dist == max_dist_warp) >> shift;
   //-1 because ffs(0) = 0, ffs(1) = 1. hasMax should never be zero
-  firstThreadWithMax = ffs(hasMax) - 1;
+  firstThreadWithMax = intr::ffs(hasMax) - 1;
 
   return (firstThreadWithMax + table_number * threads_per_table) + (omp_get_num_threads() * omp_get_team_num());
 }
@@ -568,9 +569,9 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
                                                                                    RTEnvd.ReplacementData, RTEnvd.TableRP
   };
 
-  _syncThreadsAligned();
+  intr::syncThreadsAligned();
   _ipt_table.copy_from(RTEnvd.iTable + gmem_start);
-  _syncThreadsAligned();
+  intr::syncThreadsAligned();
 
   int offset = 0;
   real_t dist_total = 0;
@@ -612,7 +613,7 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
     }
 
     unsigned int my_mask = get_table_mask();
-    syncWarp(my_mask);
+    intr::syncWarp(my_mask);
 
   }
 
@@ -699,7 +700,7 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
     }
 
   // race condition between writer thread that has max dist and other threads
-  _syncThreadsAligned();
+  intr::syncThreadsAligned();
   _ipt_table.copy_to(RTEnvd.iTable+gmem_start);
 }
 #pragma omp end declare target

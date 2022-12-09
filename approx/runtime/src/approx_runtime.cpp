@@ -568,9 +568,9 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
                                                                                    RTEnvd.ReplacementData, RTEnvd.TableRP
   };
 
-  syncThreadsAligned();
+  _syncThreadsAligned();
   _ipt_table.copy_from(RTEnvd.iTable + gmem_start);
-  syncThreadsAligned();
+  _syncThreadsAligned();
 
   int offset = 0;
   real_t dist_total = 0;
@@ -699,7 +699,7 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
     }
 
   // race condition between writer thread that has max dist and other threads
-  syncThreadsAligned();
+  _syncThreadsAligned();
   _ipt_table.copy_to(RTEnvd.iTable+gmem_start);
 }
 #pragma omp end declare target

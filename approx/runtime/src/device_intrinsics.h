@@ -1,7 +1,7 @@
 #ifndef DEVICE_INTRINSICS_HH_INCLUDED
 #define DEVICE_INTRINSICS_HH_INCLUDED
 #pragma omp begin declare target device_type(nohost)
-void syncThreadsAligned(){};
+void _syncThreadsAligned(){};
 unsigned int warpReduceMax(unsigned mask, unsigned int value) {return 0;}
 unsigned int warpBallot(unsigned int mask, bool pred) { return 0;}
 unsigned int ffs(unsigned int val) { return __builtin_ffs(val);}
@@ -14,7 +14,7 @@ unsigned int brev(unsigned int v) { return 0;}
 #pragma omp end declare target
 #pragma omp begin declare variant match(                                       \
     device = {arch(nvptx, nvptx64)}, implementation = {extension(match_any)})
-void syncThreadsAligned() { __syncthreads(); }
+void _syncThreadsAligned() { __syncthreads(); }
 unsigned int warpReduceMax(unsigned int mask, unsigned int value) { return __nvvm_redux_sync_umax(value, mask);}
 unsigned int warpBallot(unsigned int mask, bool pred) { return __nvvm_vote_ballot_sync(mask, pred);}
 unsigned int brev(unsigned int v) { return __brev(v);}

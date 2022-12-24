@@ -41,6 +41,7 @@ typedef struct approx_perfo_info_t {
   float rate;
 } approx_perfo_info_t;
 
+#pragma omp declare target
 /** @struct approx_var_info_t
  *  @brief This structure contains all the information the
  *  developer passed to the programming model on the in/out/inout()
@@ -65,12 +66,31 @@ typedef struct approx_var_info_t {
   uint8_t dir;
 } approx_var_info_t;
 
+/* typedef struct approx_var_ptr_t { */
+/*   void *ptr; */
+/*   size_t num_elem; */
+/*   size_t stride; */
+/* } approx_var_ptr_t; */
+
+typedef struct approx_var_access_t {
+  const size_t num_elem;
+  const size_t stride;
+} approx_var_access_t;
+
+
+typedef struct approx_region_specification {
+  const size_t sz_elem;
+  const int8_t data_type;
+  const int8_t dir;
+} approx_region_specification;
+
 enum ApproxType : int8_t {
 #define APPROX_TYPE(Id, type, nameOfType) Id,
 #include "clang/Basic/approxTypes.def"
   INVALID
 #undef APPROX_TYPE
 };
+#pragma omp end declare target
 
 void memoize_out(void (*accurate)(void *), void *arg,
                  approx_var_info_t *outputs, int num_outputs);
@@ -88,6 +108,9 @@ int getPredictionSize();
 int getHistorySize();
 int getTableSize();
 float getThreshold();
+
+int copy_vars_to_device(approx_var_info_t *vals, int numVals, int destDev, int srcDev);
+int copy_var_to_device(approx_var_info_t *vals, int destDev, int srcDev);
 
 #ifdef __cplusplus
 }

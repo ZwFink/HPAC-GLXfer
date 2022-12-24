@@ -1,4 +1,5 @@
 configure_file(${LIBAPPROX_INC_DIR}/approx.h approx.h COPYONLY)
+configure_file(${LIBAPPROX_INC_DIR}/approx_debug.h approx_debug.h COPYONLY)
 message("libapprox is ${LIBAPPROX_INC_DIR}") 
 
 set(CLANG_SOURCE_INCLUDE "${LLVM_EXTERNAL_CLANG_SOURCE_DIR}/include/")
@@ -7,7 +8,9 @@ message("approx include is ${LIBAPPROX_INC_DIR}")
 
 set(LIBAPPROX_SOURCE_FILES
     approx_runtime.cpp
+    approx_dev_runtime.cpp
     approx_data_util.cpp
+    approx_data_move.cpp
     approx_memoize_out.cpp
     approx_memoize_iact_in.cpp
     approx_perforate.cpp
@@ -38,3 +41,5 @@ set(LIBAPPROX_HEADERS_INSTALL_PATH "${APPROX_INSTALL_LIBDIR}/clang/${CLANG_VERSI
 
 install(TARGETS approx ${LIBAPPROX_INSTALL_KIND} DESTINATION "${APPROX_INSTALL_LIBDIR}")
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/approx.h DESTINATION ${LIBAPPROX_HEADERS_INSTALL_PATH})
+# TODO: Only do this in debug builds
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/approx_debug.h DESTINATION ${LIBAPPROX_HEADERS_INSTALL_PATH})

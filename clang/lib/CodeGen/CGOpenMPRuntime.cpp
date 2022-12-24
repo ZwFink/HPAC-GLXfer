@@ -2791,6 +2791,11 @@ void CGOpenMPRuntime::emitForStaticInit(CodeGenFunction &CGF,
                                              isOpenMPLoopDirective(DKind)
                                                  ? OMP_IDENT_WORK_LOOP
                                                  : OMP_IDENT_WORK_SECTIONS);
+  ASTContext &C = CGM.getContext();
+  QualType BoolTy = C.getIntTypeForBitwidth(8, false);
+  Address InitCheck = CGF.CreateMemTemp(BoolTy);
+  CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 0, false), InitCheck, false, BoolTy, AlignmentSource::Type, true, false);
+  ApproxInitCheck = InitCheck;
   llvm::Value *ThreadId = getThreadID(CGF, Loc);
   llvm::FunctionCallee StaticInitFunction =
       createForStaticInitFunction(Values.IVSize, Values.IVSigned, false);
@@ -10555,6 +10560,15 @@ void CGOpenMPRuntime::scanForTargetRegionsFunctions(const Stmt *S,
                                                     StringRef ParentName) {
   if (!S)
     return;
+
+  Stmt *Ss = const_cast<Stmt*>(S);
+  if(ApproxDirective *AD = dyn_cast<ApproxDirective>(Ss))
+    {
+      CapturedStmt *CStmt = cast<CapturedStmt>(AD->getAssociatedStmt());
+      const auto *E = cast<OMPExecutableDirective>(CStmt->getCapturedStmt());
+      scanForTargetRegionsFunctions(E, ParentName);
+      return;
+    }
 
   // Codegen OMP target directives that offload compute to the device.
   bool RequiresDeviceCodegen =

@@ -10,6 +10,7 @@ set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/;${CMAKE_MODULE_PATH}")
 
 find_package(OpenMP REQUIRED)
+set(OpenMP_CXX_FLAGS "${OpenMP_CXX_FLAGS} -Xopenmp-target -march=sm_86 -fopenmp-targets=nvptx64 -foffload-lto -g")
 
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
@@ -17,6 +18,44 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
     message("LINKER FLAGS ARE ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
+
+option(DEV_STATS "Turn on the collection of device approximation statistics" 0)
+if(DEV_STATS)
+  add_compile_definitions(APPROX_DEV_STATS)
+endif()
+
+option(SHARED_MEMORY_SIZE "Amount of shared memory (in bytes) to use for reducing global memory traffic")
+if(SHARED_MEMORY_SIZE)
+  add_compile_definitions(SM_SZ_IN_BYTES=${SHARED_MEMORY_SIZE})
+else()
+  add_compile_definitions(SM_SZ_IN_BYTES=0)
+endif()
+
+option(TAF_TYPE "Type of TAF to use: either TAF_INTER for taf-inter, or TAF_INTRA for taf-intra")
+if("${TAF_TYPE}" STREQUAL "TAF_INTER")
+  add_compile_definitions(TAF_INTER=1)
+else()
+  add_compile_definitions(TAF_INTRA=1)
+endif()
+
+
+
+option(TAF_WIDTH "Number of adjacent threads per warp that will share TAF state. Must be a power of 2 at most 32.")
+if(TAF_WIDTH)
+  add_compile_definitions(TAF_THREAD_WIDTH=${TAF_WIDTH})
+else()
+  add_compile_definitions(TAF_THREAD_WIDTH=32)
+endif()
+
+
+option(TABLES_PER_WARP "Number of memoization input tables to store for each warp.")
+if(TABLES_PER_WARP)
+  add_compile_definitions(TABLES_PER_WARP=${TABLES_PER_WARP})
+else()
+  add_compile_definitions(TABLES_PER_WARP=2)
+endif()
+
+add_compile_definitions(NTHREADS_PER_WARP=32)
 
 set(CMAKE_CXX_STANDARD 14 CACHE STRING "C++ standard to conform to")
 set(CMAKE_CXX_STANDARD_REQUIRED YES)

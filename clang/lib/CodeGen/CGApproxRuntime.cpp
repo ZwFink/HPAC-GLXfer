@@ -24,7 +24,7 @@ using namespace llvm;
 using namespace clang;
 using namespace CodeGen;
 
-int8_t convertToApproxType(const BuiltinType *T) {
+static int8_t convertToApproxType(const BuiltinType *T) {
   ApproxType approxType;
   switch (T->getKind()) {
   case BuiltinType::Kind::Bool:
@@ -70,9 +70,10 @@ int8_t convertToApproxType(const BuiltinType *T) {
   case BuiltinType::Kind::Double:
     approxType = DOUBLE;
     break;
-  case BuiltinType::Kind::LongDouble:
-    approxType = LDOUBLE;
-    break;
+  // Long double not available for nvptx64 target
+  // case BuiltinType::Kind::LongDouble:
+  //   approxType = LDOUBLE;
+  //   break;
   default:
     approxType = ApproxType::INVALID;
     break;
@@ -205,7 +206,7 @@ static void getPerfoInfoType(ASTContext &C, QualType &perfoInfoTy) {
   return;
 }
 
-static void getVarInfoType(ASTContext &C, QualType &VarInfoTy) {
+void CGApproxRuntime::getVarInfoType(ASTContext &C, QualType &VarInfoTy) {
   if (VarInfoTy.isNull()) {
     RecordDecl *VarInfoRD = C.buildImplicitRecord("approx_var_info_t");
     VarInfoRD->startDefinition();
@@ -232,7 +233,8 @@ static void getVarInfoType(ASTContext &C, QualType &VarInfoTy) {
 }
 
 CGApproxRuntime::CGApproxRuntime(CodeGenModule &CGM)
-    : CGM(CGM), CallbackFnTy(nullptr), RTFnTy(nullptr), approxRegions(0),
+  : CGM(CGM), CallbackFnTy(nullptr), RTFnTy(nullptr),
+    approxRegions(0),
       StartLoc(SourceLocation()), EndLoc(SourceLocation()), requiresData(false),
       requiresInputs(false) {
   ASTContext &C = CGM.getContext();
@@ -260,6 +262,7 @@ CGApproxRuntime::CGApproxRuntime(CodeGenModule &CGM)
        /* Ouput Data Descr. */ CGM.VoidPtrTy,
        /* Output Data Num Elements*/ CGM.Int32Ty},
       false);
+
 }
 
 void CGApproxRuntime::CGApproxRuntimeEnterRegion(CodeGenFunction &CGF,
@@ -311,6 +314,7 @@ void CGApproxRuntime::CGApproxRuntimeEnterRegion(CodeGenFunction &CGF,
   EndLoc = CS.getEndLoc();
   return;
 }
+
 
 // TODO: Should we add LoopExprs to the PerfoClause?
 void CGApproxRuntime::CGApproxRuntimeEmitPerfoInit(
@@ -364,14 +368,17 @@ void CGApproxRuntime::CGApproxRuntimeEmitPerfoInit(
 void CGApproxRuntime::CGApproxRuntimeEmitMemoInit(
     CodeGenFunction &CGF, ApproxMemoClause &MemoClause) {
   requiresData = true;
-  if (MemoClause.getMemoType() == approx::MT_IN) {
-    requiresInputs = true;
-    approxRTParams[MemoDescr] =
+  switch(MemoClause.getMemoType()) {
+    case approx::MT_IN:
+      requiresInputs = true;
+      approxRTParams[MemoDescr] =
         llvm::ConstantInt::get(CGF.Builder.getInt32Ty(), 1);
-  } else if (MemoClause.getMemoType() == approx::MT_OUT) {
+      break;
+    case approx::MT_OUT:
     approxRTParams[MemoDescr] =
         llvm::ConstantInt::get(CGF.Builder.getInt32Ty(), 2);
-  }
+      break;
+    }
 }
 
 void CGApproxRuntime::CGApproxRuntimeEmitIfInit(CodeGenFunction &CGF,
@@ -636,6 +643,7 @@ void CGApproxRuntime::CGApproxRuntimeExitRegion(CodeGenFunction &CGF) {
   llvm::FunctionCallee RTFnCallee({RTFnTy, RTFn});
   CGF.EmitRuntimeCall(RTFnCallee, ArrayRef<llvm::Value *>(approxRTParams));
 }
+
 
 void CGApproxRuntime::CGApproxRuntimeRegisterInputs(ApproxInClause &InClause) {
   for (auto *V : InClause.varlist()) {

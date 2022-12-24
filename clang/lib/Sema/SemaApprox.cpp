@@ -12,18 +12,22 @@
 
 #include "TreeTransform.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/ASTFwd.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclApprox.h"
 #include "clang/AST/StmtApprox.h"
+#include "clang/AST/StmtOpenMP.h"
 #include "clang/AST/StmtVisitor.h"
 #include "clang/Basic/Approx.h"
 #include "clang/Basic/DiagnosticSema.h"
 #include "clang/Basic/IdentifierTable.h"
+#include "clang/Basic/OpenMPKinds.h"
 #include "clang/Parse/ParseDiagnostic.h"
 #include "clang/Sema/Sema.h"
 #include "llvm/ADT/IndexedMap.h"
 #include "llvm/ADT/PointerEmbeddedInt.h"
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/Frontend/OpenMP/OMP.h.inc"
 #include "llvm/Support/Debug.h"
 
 using namespace clang;
@@ -1842,11 +1846,12 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
   CapturedStmt *CS = nullptr;
   ApproxLoopHelperExprs B;
   OMPLoopDirective *OMPLoopDir = nullptr;
+
   for(const auto &AC : Clauses) {
     if(AC->getClauseKind() == CK_PERFO) {
       Stmt *LoopStmt = nullptr;
       if ((OMPLoopDir = dyn_cast<OMPLoopDirective>(AssociatedStmt))) {
-        LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
+        LoopStmt = OMPLoopDir->getInnermostCapturedStmt()->IgnoreContainers(true);
       } else {
         LoopStmt = AssociatedStmt;
         B.OMPParallelForDir = nullptr;
@@ -2062,9 +2067,11 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
     ASTContext &Context = getASTContext();
     SmallVector<clang::OMPClause *, 8> OMPClauses;
     for (unsigned i = 0; i < OMPLoopDir->getNumClauses(); i++)
+      {
       OMPClauses.push_back(OMPLoopDir->getClause(i));
+      }
 
-    const CapturedStmt *OMPCap = cast<CapturedStmt>(OMPLoopDir->getAssociatedStmt());
+    const CapturedStmt *OMPCap = cast<CapturedStmt>(OMPLoopDir->getInnermostCapturedStmt());
     auto BuildOMPParallelFor = [&]() {
       auto *DRE = cast<DeclRefExpr>(B.IterationVarRef);
       BuildDeclRefExpr(DRE->getDecl(), DRE->getDecl()->getType(),
@@ -2107,7 +2114,7 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
       }
 
       SmallVector<Stmt *, 8> StmtList;
-      Stmt *LoopStmt = OMPLoopDir->getAssociatedStmt()->IgnoreContainers(true);
+      Stmt *LoopStmt = OMPLoopDir->getInnermostCapturedStmt()->IgnoreContainers(true);
       Stmt *LoopBody = nullptr;
       if (auto *For = dyn_cast<ForStmt>(LoopStmt)) {
         LoopBody = For->getBody();
@@ -2148,12 +2155,11 @@ StmtResult Sema::ActOnApproxDirective(Stmt *AssociatedStmt,
     StmtResult OMPCSRes = ActOnOpenMPRegionEnd(CompStmtRes, OMPClauses);
     StmtResult OMPParForDirRes = ActOnOpenMPExecutableDirective(
         OMPLoopDir->getDirectiveKind(), DeclarationNameInfo(), OMPD_unknown,
-        OMPClauses, OMPCSRes.get(), SourceLocation(), SourceLocation());
+        OMPClauses, OMPCSRes.get(), Locs.StartLoc, Locs.EndLoc);
 
     EndOpenMPDSABlock(OMPParForDirRes.get());
 
     B.OMPParallelForDir = OMPParForDirRes.get();
-
   }
 
   CS = dyn_cast<CapturedStmt>(ActOnCapturedRegionEnd(AssociatedStmt).get());

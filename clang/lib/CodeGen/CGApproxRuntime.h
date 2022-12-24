@@ -22,6 +22,7 @@
 #include "clang/Basic/SourceLocation.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/GlobalVariable.h"
+#include <memory>
 
 namespace clang {
 namespace CodeGen {
@@ -50,6 +51,7 @@ enum ApproxRTArgsIndex : uint {
 
 enum DevApproxRTArgsIndex : uint {
   DevAccurateFn = 0,
+  DevPerfoFn,
   DevCapDataPtr,
   DevMemoDescr,
   DevDataDescIn,
@@ -126,15 +128,15 @@ protected:
   /// } approx_var_ptr_t;
   QualType VarAccessTy;
 
-  void CGApproxRuntimeEmitPerfoFn(CapturedStmt &CS, const ApproxLoopHelperExprs &LoopExprs, const ApproxPerfoClause &PC);
+  virtual void CGApproxRuntimeEmitPerfoFn(CapturedStmt &CS, const ApproxLoopHelperExprs &LoopExprs, const ApproxPerfoClause &PC);
   virtual std::pair<llvm::Value *, llvm::Value *> CGApproxRuntimeEmitData(CodeGenFunction &CGF, llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *arrayName);
   virtual void getVarInfoType(ASTContext &C, QualType &VarInfoTy);
 
 public:
   CGApproxRuntime(CodeGenModule &CGM);
   virtual void CGApproxRuntimeEnterRegion(CodeGenFunction &CGF, CapturedStmt &CS);
-  void CGApproxRuntimeEmitPerfoInit(CodeGenFunction &CGF, CapturedStmt &CS,
-                                    ApproxPerfoClause &PerfoClause, const ApproxLoopHelperExprs &LoopExprs);
+  virtual void CGApproxRuntimeEmitPerfoInit(CodeGenFunction &CGF, CapturedStmt &CS,
+                                            ApproxPerfoClause &PerfoClause, const ApproxLoopHelperExprs &LoopExprs);
   virtual void CGApproxRuntimeEmitMemoInit(CodeGenFunction &CGF,
                                    ApproxMemoClause &MemoClause);
   void CGApproxRuntimeEmitIfInit(CodeGenFunction &CGF,
@@ -167,9 +169,9 @@ protected:
 void CGApproxRuntimeEmitInitData(
   CodeGenFunction &CGF,
   llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, Address Base);
-  Address declareAccessArrays(CodeGenFunction &CGF,
+  std::unique_ptr<Address> declareAccessArrays(CodeGenFunction &CGF,
                            llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *name);
-  Address declarePtrArrays(CodeGenFunction &CGF,
+  std::unique_ptr<Address> declarePtrArrays(CodeGenFunction &CGF,
                            llvm::SmallVector<std::pair<Expr *, Directionality>, 16> &Data, const char *name);
 
   Address getAddressofVarInAddressSpace(CodeGenFunction &CGF, llvm::Value *V, QualType T, clang::LangAS AS);
@@ -188,8 +190,15 @@ public:
   CGApproxRuntimeGPU(CodeGenModule &CGM);
   ~CGApproxRuntimeGPU() = default;
   void CGApproxRuntimeEnterRegion(CodeGenFunction &CGF, CapturedStmt &CS) override;
+  void CGApproxRuntimeEmitPerfoInit(CodeGenFunction &CGF, CapturedStmt &CS, ApproxPerfoClause &PerfoClause,
+                                    const ApproxLoopHelperExprs &LoopExprs
+                                    ) override;
   void CGApproxRuntimeEmitMemoInit(CodeGenFunction &CGF,
                                    ApproxMemoClause &MemoClause) override;
+void CGApproxRuntimeEmitPerfoFn(CapturedStmt &CS, const ApproxLoopHelperExprs &LoopExprs,
+                                const ApproxPerfoClause &PC
+                                ) override;
+
   void CGApproxRuntimeExitRegion(CodeGenFunction &CGF) override;
   void CGApproxRuntimeEmitDataValues(CodeGenFunction &CG) override;
   void declareApproxInit(CodeGenFunction& CGF);

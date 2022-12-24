@@ -12,10 +12,12 @@
 
 #include "CGApproxRuntime.h"
 #include "CodeGenFunction.h"
+#include "clang/AST/ASTFwd.h"
 #include "clang/AST/ApproxClause.h"
 #include "clang/AST/Expr.h"
 #include "clang/AST/Stmt.h"
 #include "clang/AST/StmtApprox.h"
+#include "clang/AST/StmtOpenMP.h"
 #include "clang/Basic/Approx.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Debug.h"
@@ -591,9 +593,9 @@ llvm::Function *CodeGenFunction::GeneratePerfoCapturedStmtFunction(
       EmitStmt(LoopExprs.PerfoSkip);
     Stmt *S = const_cast<Stmt *>(CS.getCapturedStmt());
     Stmt *LoopS = nullptr;
-    OMPParallelForDirective *OMPFD = nullptr;
-    if ((OMPFD = dyn_cast<OMPParallelForDirective>(S)))
-      LoopS = OMPFD->getAssociatedStmt()->IgnoreContainers(true);
+    OMPLoopDirective *OMPFD = nullptr;
+    if ((OMPFD = dyn_cast<OMPLoopDirective>(S)))
+      LoopS = OMPFD->getInnermostCapturedStmt()->IgnoreContainers(true);
     else
       LoopS = S->IgnoreContainers();
     emitBody(emitBody, S, LoopS);

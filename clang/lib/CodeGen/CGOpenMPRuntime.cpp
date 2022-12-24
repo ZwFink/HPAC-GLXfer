@@ -2795,7 +2795,7 @@ void CGOpenMPRuntime::emitForStaticInit(CodeGenFunction &CGF,
   QualType BoolTy = C.getIntTypeForBitwidth(8, false);
   Address InitCheck = CGF.CreateMemTemp(BoolTy);
   CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 0, false), InitCheck, false, BoolTy, AlignmentSource::Type, true, false);
-  ApproxInitCheck = InitCheck;
+  ApproxInitCheck = new Address(InitCheck);
   llvm::Value *ThreadId = getThreadID(CGF, Loc);
   llvm::FunctionCallee StaticInitFunction =
       createForStaticInitFunction(Values.IVSize, Values.IVSigned, false);
@@ -6445,7 +6445,7 @@ void CGOpenMPRuntime::emitTargetOutlinedFunctionHelper(
   // If this target outline function is not an offload entry, we don't need to
   // register it.
   if (!IsOffloadEntry)
-    return;
+      return;
 
   // The target region ID is used by the runtime library to identify the current
   // target region, so it only has to be unique and not necessarily point to
@@ -10564,8 +10564,13 @@ void CGOpenMPRuntime::scanForTargetRegionsFunctions(const Stmt *S,
   Stmt *Ss = const_cast<Stmt*>(S);
   if(ApproxDirective *AD = dyn_cast<ApproxDirective>(Ss))
     {
+      // We need to do codegen for the exact kernel the approx statement captures
       CapturedStmt *CStmt = cast<CapturedStmt>(AD->getAssociatedStmt());
       const auto *E = cast<OMPExecutableDirective>(CStmt->getCapturedStmt());
+      scanForTargetRegionsFunctions(E, ParentName);
+
+      // We need to do codegen for the approx kernel we generated for perforation
+      E = cast<OMPExecutableDirective>(AD->LoopExprs.OMPParallelForDir);
       scanForTargetRegionsFunctions(E, ParentName);
       return;
     }

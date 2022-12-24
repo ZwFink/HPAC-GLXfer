@@ -33,6 +33,7 @@
 #define FULL_MASK 0xFFFFFFFF
 
 using namespace std;
+using namespace approx;
 
 #define MEMO_IN 1
 #define MEMO_OUT 2
@@ -653,10 +654,10 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   unsigned int shift = threads_per_table * table_in_warp;
   if(threads_per_table == NTHREADS_PER_WARP)
     shift = 0;
-  float max_dist_warp = reduceMaxImpl(my_mask, max_dist, shift);
-  unsigned int hasMax = warpBallot(my_mask, max_dist == max_dist_warp) >> shift;
+  float max_dist_warp = intr::reduceMaxImpl(my_mask, max_dist, shift);
+  unsigned int hasMax = intr::warpBallot(my_mask, max_dist == max_dist_warp) >> shift;
   //-1 because ffs(0) = 0, ffs(1) = 1. hasMax should never be zero
-  firstThreadWithMax = ffs(hasMax) - 1;
+  firstThreadWithMax = intr::ffs(hasMax) - 1;
 
   return (firstThreadWithMax + table_number * threads_per_table) + (omp_get_num_threads() * omp_get_team_num());
 }
@@ -902,7 +903,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
         }
     }
 
-  syncWarp(FULL_MASK);
+  intr::syncWarp(FULL_MASK);
 
   // NOTE: we will use predicted and active values as the same when the translation is done
   bool am_approx = states[sublaneInWarp] == APPROX;
@@ -931,7 +932,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
         }
 
 
-      syncWarp(myMask);
+      intr::syncWarp(myMask);
       if(threadInSublane == 0)
         {
           active_values[sublaneInWarp]--;
@@ -961,7 +962,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
           offset += opts[j].num_elem;
         }
 
-      syncWarp(myMask);
+      intr::syncWarp(myMask);
       if(threadInSublane == 0)
         {
           cur_index[sublaneInWarp] = (cur_index[sublaneInWarp]+TAF_THREAD_WIDTH) % ((*RTEnvdOpt.history_size)* TAF_THREAD_WIDTH);
@@ -969,7 +970,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
         }
     }
 
-  syncWarp(myMask);
+  intr::syncWarp(myMask);
 
   if(states[sublaneInWarp] == ACCURATE && active_values[sublaneInWarp] >= *RTEnvdOpt.history_size)
     {
@@ -991,7 +992,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
               offset += opts[j].num_elem;
             }
         }
-      avg = reduceSumImpl(myMask, avg);
+      avg = intr::reduceSumImpl(myMask, avg);
 
       // average = sum / total_size
       avg /= (real_t) (*RTEnvdOpt.history_size * n_output_values * TAF_THREAD_WIDTH);
@@ -1019,7 +1020,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
         }
 
       // variance /= total_size
-      variance = reduceSumImpl(myMask, variance);
+      variance = intr::reduceSumImpl(myMask, variance);
       variance /= (real_t)(*RTEnvdOpt.history_size * n_output_values * TAF_THREAD_WIDTH);
 
       real_t stdev = sqrt(variance);
@@ -1036,7 +1037,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
           states[sublaneInWarp] = APPROX;
           active_values[sublaneInWarp] = *RTEnvdOpt.pSize;
         }
-      syncWarp(myMask);
+      intr::syncWarp(myMask);
     }
 }
 
@@ -1083,9 +1084,9 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const void *
                                                                                    RTEnvd.ReplacementData, RTEnvd.TableRP
   };
 
-  syncThreadsAligned();
+  intr::syncThreadsAligned();
   _ipt_table.copy_from(RTEnvd.iTable + gmem_start);
-  syncThreadsAligned();
+  intr::syncThreadsAligned();
 
   int offset = 0;
   real_t dist_total = 0;
@@ -1127,7 +1128,7 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const void *
     }
 
     unsigned int my_mask = get_table_mask();
-    syncWarp(my_mask);
+    intr::syncWarp(my_mask);
 
   }
 
@@ -1214,25 +1215,26 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const void *
     }
 
   // race condition between writer thread that has max dist and other threads
-  syncThreadsAligned();
+  intr::syncThreadsAligned();
   _ipt_table.copy_to(RTEnvd.iTable+gmem_start);
 }
 
-__attribute__((always_inline))
-void __approx_device_memo(void (*accurateFN)(void *), void *arg, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const char init_done)
+void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*), void *arg, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const char init_done)
 {
+  if(perfoFN)
+    {
+      perfoFN(arg);
+      return;
+    }
   if(memo_type == MEMO_IN)
     {
       __approx_device_memo_in(accurateFN, arg, region_info_in, ipt_access, inputs, nInputs, region_info_out, opt_access, outputs, nOutputs);
     }
-  else if(memo_type == MEMO_OUT)
+  else
     {
       __approx_device_memo_out(accurateFN, arg, region_info_out, opt_access, outputs, nOutputs, init_done);
     }
-  else
-    {
-      printf("ERROR: Incorrect memo type");
-    }
+
 }
 
 #pragma omp end declare target

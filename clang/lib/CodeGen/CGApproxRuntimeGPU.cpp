@@ -259,7 +259,8 @@ CGApproxRuntimeGPU::CGApproxRuntimeGPU(CodeGenModule &CGM)
                                            /* Output Data Descr. */ CGM.VoidPtrTy,
                                            /* Output Access Descr. */ CGM.VoidPtrTy,
                                            /* Output Data Pointers. */ CGM.VoidPtrTy,
-                                           /* Output Data Num Elements */ CGM.Int32Ty
+                                           /* Output Data Num Elements */ CGM.Int32Ty,
+                                           /* Initialization done */ CGM.Int8Ty
                                          },
                                          false);
 }
@@ -349,6 +350,11 @@ void CGApproxRuntimeGPU::CGApproxRuntimeExitRegion(CodeGenFunction &CGF) {
 
   llvm::FunctionCallee RTFnCallee({RTFnTy, RTFnDev});
   CGF.EmitRuntimeCall(RTFnCallee, ArrayRef<llvm::Value *>(approxRTParams));
+
+  // Signal now that we have initialized any runtime state -- allows us to check this value in the runtime function call
+  //TODO: clean this up
+  QualType BoolTy = CGF.getContext().getIntTypeForBitwidth(8, false);
+  CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 1, false), ApproxInitAddress, false, BoolTy, AlignmentSource::Type, false, false);
 }
 
 void CGApproxRuntimeGPU::CGApproxRuntimeEmitInitData(
@@ -374,6 +380,37 @@ void CGApproxRuntimeGPU::CGApproxRuntimeEmitInitData(
                           Base);
     Pos++;
   }
+}
+
+void CGApproxRuntimeGPU::declareApproxInit(CodeGenFunction& CGF)
+{
+  QualType BoolTy = CGF.getContext().getIntTypeForBitwidth(8, false);
+  llvm::Type *BoolMemTy = CGF.ConvertTypeForMem(BoolTy);
+  std::string name = "approx_init";
+
+
+  // Leak, but who cares
+  ApproxInit = new GlobalVariable(CGM.getModule(), BoolMemTy, false, GlobalValue::InternalLinkage,
+                               llvm::Constant::getNullValue(BoolMemTy),
+                               name,
+                               /*InsertBefore=*/ nullptr,
+                               /*ThreadLocalMode=*/ GlobalValue::NotThreadLocal,
+                               // how do we do this better?
+                               Optional<unsigned>((unsigned) 3)
+                               );
+  ApproxInitAddress = this->getAddressofVarInAddressSpace(CGF, ApproxInit, BoolTy, clang::LangAS::cuda_shared);
+  CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 0, false), ApproxInitAddress, false, BoolTy, AlignmentSource::Type, false, false);
+
+}
+
+Address CGApproxRuntimeGPU::getAddressofVarInAddressSpace(CodeGenFunction &CGF, llvm::Value *V, QualType T, clang::LangAS AS)
+{
+  llvm::Type *MemType = CGF.ConvertTypeForMem(T);
+
+  return Address(
+                 CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(
+                 V, MemType->getPointerTo(CGM.getContext().getTargetAddressSpace(AS))),
+                 MemType, CharUnits::fromQuantity(8));
 }
 
 Address CGApproxRuntimeGPU::declareAccessArrays(CodeGenFunction &CGF,
@@ -562,13 +599,15 @@ void CGApproxRuntimeGPU::CGApproxRuntimeEmitDataValues(CodeGenFunction &CGF) {
   sprintf(namePtr, ".dep.approx_opt_ptr.arr.addr_%d", output_arrays);
   ArrayOptPtrBase = declarePtrArrays(CGF, Outputs, namePtr);
 
-  llvm::Value *InitCheckValue = CGF.EmitLoadOfScalar(InitCheck, false, BoolTy, SourceLocation());
+  llvm::Value *InitCheckValue = CGF.EmitLoadOfScalar(getAddressofVarInAddressSpace(CGF, ApproxInit, BoolTy, clang::LangAS::cuda_shared),
+                                                     false, BoolTy, SourceLocation()
+                                                     );
+  approxRTParams[DevInitDone] = InitCheckValue;
 
   llvm::Value *InitDone = CGF.Builder.CreateICmpEQ(InitCheckValue, llvm::ConstantInt::get(CGF.Int8Ty, 1));
   CGF.Builder.CreateCondBr(InitDone, ContinueBody, StoreBody);
 
   CGF.EmitBlock(StoreBody);
-  CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 1, false), InitCheck, false, BoolTy, AlignmentSource::Type, false, false);
 
   llvm::Value *ThreadID = OMPRT.getGPUThreadID(CGF);
   llvm::Value *AmFirstThreadInBlock = CGF.Builder.CreateICmpEQ(ThreadID, llvm::ConstantInt::get(CGF.IntTy, 0));

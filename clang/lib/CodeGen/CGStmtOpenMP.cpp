@@ -5511,7 +5511,6 @@ void CodeGenFunction::EmitOMPDistributeLoop(const OMPLoopDirective &S,
     // Emit 'then' code.
     {
       // Emit helper vars inits.
-
       LValue LB = EmitOMPHelperVar(
           *this, cast<DeclRefExpr>(
                      (isOpenMPLoopBoundSharingDirective(S.getDirectiveKind())
@@ -5605,30 +5604,7 @@ void CodeGenFunction::EmitOMPDistributeLoop(const OMPLoopDirective &S,
         if (StaticChunked)
           Cond = S.getCombinedDistCond();
 
-        // For static unchunked schedules generate:
-        //
-        //  1. For distribute alone, codegen
-        //    while (idx <= UB) {
-        //      BODY;
-        //      ++idx;
-        //    }
-        //
-        //  2. When combined with 'for' (e.g. as in 'distribute parallel for')
-        //    while (idx <= UB) {
-        //      <CodeGen rest of pragma>(LB, UB);
-        //      idx += ST;
-        //    }
-        //
-        // For static chunk one schedule generate:
-        //
-        // while (IV <= GlobalUB) {
-        //   <CodeGen rest of pragma>(LB, UB);
-        //   LB += ST;
-        //   UB += ST;
-        //   UB = min(UB, GlobalUB);
-        //   IV = LB;
-        // }
-        //
+
         emitCommonSimdLoop(
             *this, S,
             [&S](CodeGenFunction &CGF, PrePostActionTy &) {
@@ -7420,6 +7396,8 @@ static void emitTargetParallelForRegion(CodeGenFunction &CGF,
     CGF.EmitOMPWorksharingLoop(S, S.getEnsureUpperBound(), emitForLoopBounds,
                                emitDispatchForLoopBounds);
   };
+
+
   emitCommonOMPParallelDirective(CGF, S, OMPD_for, CodeGen,
                                  emitEmptyBoundParameters);
 }

@@ -2,7 +2,7 @@
 #define DEVICE_INTRINSICS_HH_INCLUDED
 namespace approx {
   namespace intr {
-#pragma omp begin declare target device_type(nohost)
+#pragma omp begin declare target
 void syncThreadsAligned(){};
 unsigned int warpReduceMax(unsigned mask, unsigned int value) {return 0;}
 unsigned int warpBallot(unsigned int mask, bool pred) { return 0;}

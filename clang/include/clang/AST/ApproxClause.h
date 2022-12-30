@@ -48,6 +48,7 @@ protected:
 
 public:
   static const std::string Name[approx::CK_END];
+  static const std::string ApproxDecisionHierarchy[approx::DTH_END];
 
   SourceLocation getBeginLoc() const { return StartLoc; }
 

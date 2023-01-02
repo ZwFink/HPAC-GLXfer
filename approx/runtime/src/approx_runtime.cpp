@@ -664,7 +664,7 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
 
 #ifdef TAF_INTER
 __attribute__((always_inline))
-void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
+void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int decision_type, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
 {
   const approx_region_specification *out_reg = (const approx_region_specification*) region_info_out;
   approx_var_access_t *opts = (approx_var_access_t*) opt_access;
@@ -833,7 +833,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
 #else
 
 __attribute__((always_inline))
-void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
+void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int decision_type, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
 {
   const approx_region_specification *out_reg = (const approx_region_specification*) region_info_out;
   constexpr int TAF_REGIONS_PER_WARP = NTHREADS_PER_WARP/TAF_THREAD_WIDTH;
@@ -1036,7 +1036,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const void 
 #endif //TAF_INTER
 
 __attribute__((always_inline))
-void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
+void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int decision_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
 {
   const approx_region_specification *in_reg = (const approx_region_specification*) region_info_in;
   const approx_region_specification *out_reg = (const approx_region_specification*) region_info_out;
@@ -1224,7 +1224,7 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const void *
   intr::syncThreadsAligned();
 }
 
-void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*), void *arg, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
+void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*), void *arg, int decision_type, int memo_type, const void *region_info_in, const void *ipt_access, const void **inputs, const int nInputs, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
 {
   if(perfoFN)
     {
@@ -1233,11 +1233,11 @@ void __approx_device_exec_call(void (*accurateFN)(void *), void (*perfoFN)(void*
     }
   if(memo_type == MEMO_IN)
     {
-      __approx_device_memo_in(accurateFN, arg, region_info_in, ipt_access, inputs, nInputs, region_info_out, opt_access, outputs, nOutputs, init_done);
+      __approx_device_memo_in(accurateFN, arg, decision_type, region_info_in, ipt_access, inputs, nInputs, region_info_out, opt_access, outputs, nOutputs, init_done);
     }
   else
     {
-      __approx_device_memo_out(accurateFN, arg, region_info_out, opt_access, outputs, nOutputs, init_done);
+      __approx_device_memo_out(accurateFN, arg, decision_type, region_info_out, opt_access, outputs, nOutputs, init_done);
     }
 
 }

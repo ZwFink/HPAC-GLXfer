@@ -91,7 +91,8 @@ void ApproxClausePrinter::VisitApproxPerfoClause(ApproxPerfoClause *Node) {
 }
 
 void ApproxClausePrinter::VisitApproxMemoClause(ApproxMemoClause *Node) {
-  OS << Node->getAsString() << "(" << Node->getMemoTypeAsString() << ") ";
+  OS << Node->getAsString() << "(" << Node->getMemoTypeAsString()
+     << ":" << Node->getDecisionHirarchyTypeAsString() << ") ";
 }
 
 void ApproxClausePrinter::VisitApproxDTClause(ApproxDTClause *Node) {

@@ -154,7 +154,7 @@ ApproxClause *Parser::ParseApproxMemoClause(ClauseKind CK) {
   if (!T.consumeClose())
     ELoc = T.getCloseLocation();
   ApproxVarListLocTy Locs(Loc, LParenLoc, ELoc);
-  return Actions.ActOnApproxMemoClause(CK, MT, Locs);
+  return Actions.ActOnApproxMemoClause(CK, MT, DHT, Locs);
 }
 
 ApproxClause *Parser::ParseApproxDTClause(ClauseKind CK) {

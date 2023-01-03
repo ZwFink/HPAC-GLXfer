@@ -38,6 +38,14 @@ using namespace approx;
 #define MEMO_IN 1
 #define MEMO_OUT 2
 
+#pragma omp declare target
+enum class DecisionHierarchy {
+  THREAD = 1,
+  WARP = 2,
+  BLOCK = 3
+};
+#pragma omp end declare target
+
 #define RAND_SIZE  10000
 
 float __approx_perfo_rate__;
@@ -280,7 +288,6 @@ void resetDeviceOutputTable(float thresh, int num_output_items_per_entry, int pS
 
   if(output_mapped)
     {
-      printf("deleting the output table\n");
       // TODO: nthreads can be different here as well
       int del_gtab_size = nthreads * num_output_items_per_entry * *RTEnvdOpt.history_size;
 #pragma omp target exit data map(delete:RTEnvdOpt, RTEnvdOpt.states[0:nthreads], RTEnvdOpt.predicted_values[0:nthreads], RTEnvdOpt.pSize[0:1], RTEnvdOpt.oTable[0:del_gtab_size], RTEnvdOpt.threshold[0:1], RTEnvdOpt.history_size[0:1], RTEnvdOpt.window_size[0:1], RTEnvdOpt.active_values[0:nthreads], RTEnvdOpt.cur_index[0:nthreads])
@@ -662,6 +669,38 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   return (firstThreadWithMax + table_number * threads_per_table) + (omp_get_num_threads() * omp_get_team_num());
 }
 
+bool makeApproxDecision(DecisionHierarchy T, float value, float threshold)
+{
+  float all_vals = 0.0;
+  float reduction_dest[1];
+  #pragma omp allocate(reduction_dest) allocator(omp_pteam_mem_alloc)
+
+  switch(T) {
+  case DecisionHierarchy::THREAD:
+    return value < threshold;
+
+  case DecisionHierarchy::WARP:
+    all_vals = intr::reduceSumImpl(FULL_MASK, value);
+    return (all_vals / (float) NTHREADS_PER_WARP) < threshold;
+
+  case DecisionHierarchy::BLOCK:
+    if(omp_get_thread_num() == 0)
+      reduction_dest[0] = 0.0;
+    intr::syncThreadsAligned();
+
+    all_vals = intr::reduceSumImpl(FULL_MASK, value);
+
+    if(omp_get_thread_num() % NTHREADS_PER_WARP == 0)
+      {
+        #pragma omp atomic update
+        reduction_dest[0] += all_vals;
+      }
+    intr::syncThreadsAligned();
+
+    return (reduction_dest[0] / (float) omp_get_num_threads()) < threshold;
+  }
+}
+
 #ifdef TAF_INTER
 __attribute__((always_inline))
 void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int decision_type, const void *region_info_out, const void *opt_access, void **outputs, const int nOutputs, const bool init_done)
@@ -816,9 +855,13 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
               if(avg != 0.0f){
                 rsd = stdev / avg;
               }
-              if(rsd < 0.0) rsd = -rsd;
 
-              if(rsd < *RTEnvdOpt.threshold)
+              if(rsd < 0.0) rsd = -rsd;
+              bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
+                                                          rsd, *RTEnvdOpt.threshold
+                                                          );
+
+              if(shouldApproximate)
                 {
                   // switch the machine state to approx
                   states[threadInWarp] = APPROX;
@@ -1022,8 +1065,12 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
       }
       if(rsd < 0.0) rsd = -rsd;
 
+      bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
+                                                  rsd, *RTEnvdOpt.threshold
+                                                  );
+
       // No need to sync here: warp reductions sync threads identified by the mask
-      if(threadInSublane == 1 && rsd < *RTEnvdOpt.threshold)
+      if(threadInSublane == 1 && shouldApproximate)
         {
           // switch the machine state to approx
           states[sublaneInWarp] = APPROX;
@@ -1132,6 +1179,10 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
     intr::syncWarp(my_mask);
 
   }
+
+  // bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
+  //                                             rsd, *RTEnvdOpt.threshold
+  //                                             );
 
 
   if(entry_index != -1 && dist_total < *RTEnvd.threshold)

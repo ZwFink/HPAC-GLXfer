@@ -1070,7 +1070,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
                                                   );
 
       // No need to sync here: warp reductions sync threads identified by the mask
-      if(threadInSublane == 1 && shouldApproximate)
+      if(threadInSublane == 0 && shouldApproximate)
         {
           // switch the machine state to approx
           states[sublaneInWarp] = APPROX;

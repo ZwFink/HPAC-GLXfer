@@ -30,6 +30,8 @@
 #include "approx_device_memo_table.h"
 #include "device_intrinsics.h"
 
+#define APPROX_PARTICIPATION_THRESHOLD 0.5
+
 #define FULL_MASK 0xFFFFFFFF
 
 using namespace std;
@@ -671,33 +673,36 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
 
 bool makeApproxDecision(DecisionHierarchy T, float value, float threshold)
 {
-  float all_vals = 0.0;
-  float reduction_dest[1];
-  #pragma omp allocate(reduction_dest) allocator(omp_pteam_mem_alloc)
+  int n_participants_w = 0;
+  int n_participants_b[1];
+  bool am_participating = value <= threshold;
+  #pragma omp allocate(n_participants_b) allocator(omp_pteam_mem_alloc)
 
   switch(T) {
   case DecisionHierarchy::THREAD:
-    return value < threshold;
+    return am_participating;
 
   case DecisionHierarchy::WARP:
-    all_vals = intr::reduceSumImpl(FULL_MASK, value);
-    return (all_vals / (float) NTHREADS_PER_WARP) < threshold;
+    n_participants_w = intr::popc(intr::warpBallot(FULL_MASK, am_participating));
+    return (n_participants_w / (float) NTHREADS_PER_WARP) >=
+      APPROX_PARTICIPATION_THRESHOLD;
 
   case DecisionHierarchy::BLOCK:
     if(omp_get_thread_num() == 0)
-      reduction_dest[0] = 0.0;
+      n_participants_b[0] = 0;
     intr::syncThreadsAligned();
 
-    all_vals = intr::reduceSumImpl(FULL_MASK, value);
+    n_participants_w = intr::popc(intr::warpBallot(FULL_MASK, am_participating));
 
     if(omp_get_thread_num() % NTHREADS_PER_WARP == 0)
       {
         #pragma omp atomic update
-        reduction_dest[0] += all_vals;
+        n_participants_b[0] += n_participants_w;
       }
     intr::syncThreadsAligned();
 
-    return (reduction_dest[0] / (float) omp_get_num_threads()) < threshold;
+    return (n_participants_b[0] / (float) omp_get_num_threads()) >=
+      APPROX_PARTICIPATION_THRESHOLD;
   }
 }
 

@@ -671,11 +671,11 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   return (firstThreadWithMax + table_number * threads_per_table) + (omp_get_num_threads() * omp_get_team_num());
 }
 
-bool makeApproxDecision(DecisionHierarchy T, float value, float threshold)
+bool makeApproxDecision(DecisionHierarchy T, bool local_decision)
 {
   int n_participants_w = 0;
   int n_participants_b[1];
-  bool am_participating = value <= threshold;
+  bool am_participating = local_decision;
   #pragma omp allocate(n_participants_b) allocator(omp_pteam_mem_alloc)
 
   switch(T) {
@@ -863,7 +863,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
 
               if(rsd < 0.0) rsd = -rsd;
               bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
-                                                          rsd, *RTEnvdOpt.threshold
+                                                          rsd <= *RTEnvdOpt.threshold
                                                           );
 
               if(shouldApproximate)
@@ -1071,7 +1071,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
       if(rsd < 0.0) rsd = -rsd;
 
       bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
-                                                  rsd, *RTEnvdOpt.threshold
+                                                  rsd <= *RTEnvdOpt.threshold
                                                   );
 
       // No need to sync here: warp reductions sync threads identified by the mask
@@ -1185,12 +1185,12 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
 
   }
 
-  // bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
-  //                                             rsd, *RTEnvdOpt.threshold
-  //                                             );
+  bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
+                                              entry_index != -1 && dist_total <= *RTEnvd.threshold
+                                              );
 
 
-  if(entry_index != -1 && dist_total < *RTEnvd.threshold)
+  if(shouldApproximate)
     {
 
       offset = 0;

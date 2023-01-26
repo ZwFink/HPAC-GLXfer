@@ -9,7 +9,10 @@ amdarch_path = binpath / Path('amdgpu-arch')
 
 amdarch = sh.Command(amdarch_path)
 
-arch_amd = amdarch().split()
+try:
+  arch_amd = amdarch().split()
+except sh.ErrorReturnCode_1:
+  arch_amd = 0
 
 if arch_amd:
   print(f'amdgcn;{arch_amd[0]}')

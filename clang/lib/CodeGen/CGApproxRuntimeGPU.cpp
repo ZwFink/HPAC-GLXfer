@@ -56,8 +56,9 @@ static AddrSpace getAddrSpace(CodeGenModule &CGM) {
       return CUDAAddrSpace();
     case llvm::Triple::amdgcn:
       return AMDAddrSpace();
+  default:
+    return AddrSpace();
   }
-  return AddrSpace();
 }
 
 static int8_t convertToApproxType(const BuiltinType *T) {

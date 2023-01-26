@@ -47,8 +47,8 @@ if [ ! -f $clang_bin ]; then
     -DLLVM_ENABLE_ASSERTIONS='On' \
     ../llvm
 
-    make -j $threads
-    make -j $threads install 
+    ninja -j $threads
+    ninja -j $threads install 
     popd
     echo "#!/bin/bash" > hpac_env.sh
     echo "export PATH=$prefix/bin/:\$PATH" >> hpac_env.sh

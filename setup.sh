@@ -61,6 +61,9 @@ gpuarchsm=$(python3 approx/approx_utilities/detect_arch.py $prefix)
 gpuarch=$(echo $gpuarchsm | cut -d ';' -f 1)
 gpusm=$(echo $gpuarchsm | cut -d ';' -f 2)
 
+echo "export HPAC_GPU_ARCH=$gpuarch" >> hpac_env.sh
+echo "export HPAC_GPU_SM=$gpusm" >> hpac_env.sh
+
 if [ ! $? -eq 0 ]; then
   echo "ERROR: No GPU architecture targets found, exiting..."
   exit 1

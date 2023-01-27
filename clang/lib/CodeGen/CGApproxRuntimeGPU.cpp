@@ -30,37 +30,6 @@ using namespace clang;
 using namespace CodeGen;
 // FIXME: find out how to re-integrate convertToApproxType
 
-struct AddrSpace {
-  clang::LangAS shared = clang::LangAS::cuda_shared;
-  clang::LangAS global = clang::LangAS::cuda_shared;
-  clang::LangAS constant = clang::LangAS::cuda_shared;
-};
-
-struct CUDAAddrSpace : public AddrSpace {
-  clang::LangAS shared = clang::LangAS::cuda_shared;
-  clang::LangAS global = clang::LangAS::cuda_device;
-  clang::LangAS constant = clang::LangAS::cuda_constant;
-};
-
-struct AMDAddrSpace : public AddrSpace {
-  clang::LangAS shared = clang::LangAS::opencl_local;
-  clang::LangAS global = clang::LangAS::opencl_global;
-  clang::LangAS constant = clang::LangAS::opencl_constant;
-};
-
-
-static AddrSpace getAddrSpace(CodeGenModule &CGM) {
-  switch(CGM.getTriple().getArch()) {
-    case llvm::Triple::nvptx:
-    case llvm::Triple::nvptx64:
-      return CUDAAddrSpace();
-    case llvm::Triple::amdgcn:
-      return AMDAddrSpace();
-  default:
-    return AddrSpace();
-  }
-}
-
 static int8_t convertToApproxType(const BuiltinType *T) {
   ApproxType approxType;
   switch (T->getKind()) {
@@ -466,14 +435,14 @@ void CGApproxRuntimeGPU::declareApproxInit(CodeGenFunction& CGF)
 
   // Leak, but who cares
   ApproxInit = new GlobalVariable(CGM.getModule(), BoolMemTy, false, GlobalValue::InternalLinkage,
-                               llvm::Constant::getNullValue(BoolMemTy),
+			       llvm::UndefValue::get(BoolMemTy),
                                name,
                                /*InsertBefore=*/ nullptr,
                                /*ThreadLocalMode=*/ GlobalValue::NotThreadLocal,
                                // how do we do this better?
-                                  CGM.getContext().getTargetAddressSpace(SP.shared)
+                                  CGM.getContext().getTargetAddressSpace(LangAS::cuda_shared)
                                );
-  ApproxInitAddress = std::make_unique<Address>(this->getAddressofVarInAddressSpace(CGF, ApproxInit, BoolTy, SP.shared));
+  ApproxInitAddress = std::make_unique<Address>(this->getAddressofVarInAddressSpace(CGF, ApproxInit, BoolTy, LangAS::cuda_shared));
   CGF.EmitStoreOfScalar(llvm::ConstantInt::get(CGF.Int8Ty, 0, false), *ApproxInitAddress, false, BoolTy, AlignmentSource::Type, false, false);
 
 }
@@ -514,12 +483,12 @@ std::unique_ptr<Address> CGApproxRuntimeGPU::declareAccessArrays(CodeGenFunction
                                   /*InsertBefore=*/ nullptr,
                                   /*ThreadLocalMode=*/ GlobalValue::NotThreadLocal,
                                   // how do we do this better?
-                                  CGM.getContext().getTargetAddressSpace(SP.shared)
+                                  CGM.getContext().getTargetAddressSpace(LangAS::cuda_shared)
                                   );
 
   return std::make_unique<Address>(
                  CGF.Builder.CreatePointerBitCastOrAddrSpaceCast(
-                 AccessInfo, MemType->getPointerTo(CGM.getContext().getTargetAddressSpace(SP.shared))),
+                 AccessInfo, MemType->getPointerTo(CGM.getContext().getTargetAddressSpace(LangAS::cuda_shared))),
                  MemType, CGM.getContext().getPreferredTypeAlignInChars(VarPtrArrayTy));
 }
 

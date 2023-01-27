@@ -431,8 +431,6 @@ void CGApproxRuntimeGPU::declareApproxInit(CodeGenFunction& CGF)
   llvm::Type *BoolMemTy = CGF.ConvertTypeForMem(BoolTy);
   std::string name = "approx_init";
 
-  AddrSpace SP = getAddrSpace(CGM);
-
   // Leak, but who cares
   ApproxInit = new GlobalVariable(CGM.getModule(), BoolMemTy, false, GlobalValue::InternalLinkage,
 			       llvm::UndefValue::get(BoolMemTy),
@@ -473,8 +471,6 @@ std::unique_ptr<Address> CGApproxRuntimeGPU::declareAccessArrays(CodeGenFunction
                                           nullptr, ArrayType::Normal, 0);
   llvm::Type *MemType = CGF.ConvertTypeForMem(VarPtrArrayTy);
   auto *RD = VarPtrArrayTy->getAsRecordDecl();
-
-  AddrSpace SP = getAddrSpace(CGM);
 
   // Leak, but who cares
   AccessInfo = new GlobalVariable(CGM.getModule(), MemType, false, GlobalValue::InternalLinkage,

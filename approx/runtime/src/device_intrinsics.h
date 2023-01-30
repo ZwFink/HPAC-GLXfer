@@ -57,9 +57,17 @@ float reduceSumImpl(unsigned int mask, float value)
     }
   return value;
 }
+#pragma omp end declare variant
 
+#pragma omp begin declare variant match(                                       \
+    device = {arch(amdgcn)}, implementation = {extension(match_any)})
+
+void syncThreadsAligned() { __syncthreads(); }
+unsigned int ffs(unsigned long long val) { return __ffsll(val);}
+unsigned int popc(unsigned long long val) { return __popcountll(val);}
 
 #pragma omp end declare variant
+
   }
 }
 #endif

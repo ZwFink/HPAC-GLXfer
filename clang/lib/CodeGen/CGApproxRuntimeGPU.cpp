@@ -474,7 +474,7 @@ std::unique_ptr<Address> CGApproxRuntimeGPU::declareAccessArrays(CodeGenFunction
 
   // Leak, but who cares
   AccessInfo = new GlobalVariable(CGM.getModule(), MemType, false, GlobalValue::InternalLinkage,
-                                  llvm::Constant::getNullValue(MemType),
+				  llvm::UndefValue::get(MemType),
                                   name,
                                   /*InsertBefore=*/ nullptr,
                                   /*ThreadLocalMode=*/ GlobalValue::NotThreadLocal,

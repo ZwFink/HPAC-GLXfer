@@ -14,7 +14,7 @@ uint64_t popc(uint64_t val) {return 0;}
 void syncWarp(uint64_t mask) {}
 uint64_t activeMask() {return 0;}
 float reduceMaxImpl(uint64_t mask, float value, uint64_t shift) {return 0.5f;}
-float reduceSumImpl(uint64_t mask, float value) {return 0.5f;}
+float reduceSumImpl(uint64_t mask, float value, uint64_t n_p) {return 0.5f;}
 float warpShuffleXOR(uint64_t mask, float value, int lanemask){return 0.0f;}
 uint64_t brev(uint64_t v) { return 0;}
 #pragma omp end declare target
@@ -52,7 +52,7 @@ float reduceMaxImpl(uint64_t mask, float value, uint64_t shift)
 
 // max reduction among threads named in the mask.
 // the threads named in 'mask' must be a power of 2
-float reduceSumImpl(uint64_t mask, float value)
+float reduceSumImpl(uint64_t mask, float value, uint64_t num_participants)
 {
   uint64_t num_participants = popc(mask);
   for(int i = 1; i < num_participants; i *= 2)
@@ -92,9 +92,9 @@ int warpShuffleXOR(uint64_t mask, int Var, int lanemask) {
 
 }
 
-float reduceMaxImpl(uint64_t mask, float value, uint64_t shift)
+float reduceMaxImpl(uint64_t mask, float value, uint64_t n_participants)
 {
-  uint64_t num_participants = popc(mask);
+  int num_participants = n_participants;
   for(int i = 1; i < num_participants; i *= 2)
     {
       int Var = *(int*)(&value);
@@ -105,9 +105,9 @@ float reduceMaxImpl(uint64_t mask, float value, uint64_t shift)
   return value;
 }
 
-float reduceSumImpl(uint64_t mask, float value)
+float reduceSumImpl(uint64_t mask, float value, uint64_t n_participants)
 {
-  uint64_t num_participants = popc(mask);
+  uint64_t num_participants = n_participants;
   for(int i = 1; i < num_participants; i *= 2)
     {
       int Var = *(int*)(&value);

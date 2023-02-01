@@ -1043,7 +1043,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
               offset += opts[j].num_elem;
             }
         }
-      avg = intr::reduceSumImpl(myMask, avg);
+      avg = intr::reduceSumImpl(myMask, avg, TAF_THREAD_WIDTH);
 
       // average = sum / total_size
       avg /= (real_t) (*RTEnvdOpt.history_size * n_output_values * TAF_THREAD_WIDTH);
@@ -1071,7 +1071,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
         }
 
       // variance /= total_size
-      variance = intr::reduceSumImpl(myMask, variance);
+      variance = intr::reduceSumImpl(myMask, variance, TAF_THREAD_WIDTH);
       variance /= (real_t)(*RTEnvdOpt.history_size * n_output_values * TAF_THREAD_WIDTH);
 
       real_t stdev = sqrt(variance);

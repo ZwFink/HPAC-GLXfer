@@ -32,7 +32,18 @@
 
 #define APPROX_PARTICIPATION_THRESHOLD 0.5
 
+#if NTHREADS_PER_WARP == 64
+#define FULL_MASK (int64_t) -1
+using mask_t = uint64_t;
+#else
 #define FULL_MASK 0xFFFFFFFF
+using mask_t = uint32_t;
+#endif
+
+#ifndef NTHREADS_PER_WARP
+#define FULL_MASK 0xFFFFFFFF
+using mask_t = uint32_t;
+#endif
 
 using namespace std;
 using namespace approx;
@@ -612,13 +623,13 @@ const int approx_rt_get_step(){
 
 #pragma omp begin declare target device_type(nohost)
 
-  unsigned getMask(unsigned l, unsigned r)
+  mask_t  getMask(mask_t l, mask_t r)
   {
     return (((1 << (l - 1)) - 1) ^
             ((1 << (r)) - 1));
   }
 
-unsigned int get_table_mask()
+mask_t get_table_mask()
 {
 
   int tid_in_block = omp_get_thread_num();
@@ -652,7 +663,7 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   unsigned int threads_per_table = (NTHREADS_PER_WARP/TABLES_PER_WARP);
   unsigned int thread_in_table = tid_in_warp % threads_per_table;
 
-  unsigned int my_mask = 0;
+  mask_t my_mask = 0;
   unsigned int firstThreadWithMax = 0;
 
   if(threads_per_table == NTHREADS_PER_WARP)
@@ -725,9 +736,9 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
       n_output_values += opts[i].num_elem;
     }
 
-  char states [32];
-  char cur_index [32];
-  char active_values[32];
+  char states [NTHREADS_PER_WARP];
+  char cur_index [NTHREADS_PER_WARP];
+  char active_values[NTHREADS_PER_WARP];
   real_t _output_table[SM_SZ_IN_BYTES/4];
   #pragma omp allocate(states) allocator(omp_pteam_mem_alloc)
   #pragma omp allocate(cur_index) allocator(omp_pteam_mem_alloc)
@@ -929,7 +940,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
   sm_offset = warpId * MAX_HIST_SIZE*NTHREADS_PER_WARP * n_output_values;
   real_t *output_table = _output_table + (sm_offset) + MAX_HIST_SIZE*sublaneInWarp*TAF_THREAD_WIDTH*n_output_values;
 
-  const unsigned int myMask = TAF_THREAD_WIDTH == NTHREADS_PER_WARP ? FULL_MASK : getMask(1, TAF_THREAD_WIDTH) << (TAF_THREAD_WIDTH*sublaneInWarp);
+  const mask_t myMask = TAF_THREAD_WIDTH == NTHREADS_PER_WARP ? FULL_MASK : getMask(1, TAF_THREAD_WIDTH) << (TAF_THREAD_WIDTH*sublaneInWarp);
 
   int globalSublaneID = (omp_get_team_num() * omp_get_num_threads() / TAF_THREAD_WIDTH) + (omp_get_thread_num() / TAF_THREAD_WIDTH);
   if(!init_done)
@@ -1180,7 +1191,7 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
       _ipt_table.registerAccess(entry_index);
     }
 
-    unsigned int my_mask = get_table_mask();
+    mask_t my_mask = get_table_mask();
     intr::syncWarp(my_mask);
 
   }

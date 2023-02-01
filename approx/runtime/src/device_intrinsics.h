@@ -119,7 +119,7 @@ float reduceSumImpl(uint64_t mask, float value, uint64_t n_participants)
 }
 
 // no independent thread scheduling support
-void syncWarp(uint64_t mask) {(void)mask;}
+void syncWarp(uint64_t mask) {(void)mask; __builtin_amdgcn_wave_barrier();}
 #pragma omp end declare variant
 
   }

@@ -21,7 +21,6 @@
 #include <random>
 #include <omp.h>
 #include <iostream>
-#include <fstream>
 #include <cassert>
 
 #include "approx.h"

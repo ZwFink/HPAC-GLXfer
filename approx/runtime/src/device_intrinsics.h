@@ -52,7 +52,7 @@ float reduceMaxImpl(uint64_t mask, float value, uint64_t shift)
 
 // max reduction among threads named in the mask.
 // the threads named in 'mask' must be a power of 2
-float reduceSumImpl(uint64_t mask, float value, uint64_t num_participants)
+float reduceSumImpl(uint64_t mask, float value, uint64_t n_participants)
 {
   uint64_t num_participants = popc(mask);
   for(int i = 1; i < num_participants; i *= 2)

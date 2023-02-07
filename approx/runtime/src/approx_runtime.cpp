@@ -104,15 +104,6 @@ public:
   int *nthreads = nullptr;
 #endif //APPROX_DEV_STATS
 
-  ~ApproxRuntimeDevDataOutputEnv()
-  {
-    #ifdef APPROX_DEV_STATS
-    std::ofstream stats;
-    stats.open("thread_stats.csv");
-    writeDeviceThreadStatistics(stats, false);
-    stats.close();
-    #endif
-  }
 
 #pragma omp end declare target
 

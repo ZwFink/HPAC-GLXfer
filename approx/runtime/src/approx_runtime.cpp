@@ -11,6 +11,7 @@
 //===----------------------------------------------------------------------===//
 //
 
+#include <limits>
 #include <stdint.h>
 #include <string>
 #include <cstring>
@@ -1159,6 +1160,8 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
   int offset = 0;
   real_t dist_total = 0;
   real_t my_max_dist = 0.0f;
+  real_t min_dist = std::numeric_limits<real_t>::max();
+  int min_dist_idx = 0;
 
   for(int k = 0; k < _ipt_table.getSize(); k++)
     {
@@ -1173,6 +1176,12 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
 
       dist_total /= n_input_values;
       my_max_dist = max(my_max_dist, dist_total);
+
+      if(dist_total < min_dist)
+        {
+          min_dist = dist_total;
+          min_dist_idx = k;
+        }
 
       // TODO: is divergence an issue?
       if(dist_total < *RTEnvd.threshold)
@@ -1202,6 +1211,7 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
 
   }
 
+  bool localDecision = entry_index != -1 && dist_total <= *RTEnvd.threshold;
   bool shouldApproximate = makeApproxDecision(static_cast<DecisionHierarchy>(decision_type),
                                               entry_index != -1 && dist_total <= *RTEnvd.threshold
                                               );
@@ -1211,6 +1221,14 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
     {
 
       offset = 0;
+
+      // If we have to approximate because others did, then
+      // we'll return the closest value we saw
+      if(!localDecision)
+        {
+          entry_index = min_dist_idx;
+        }
+
       for(int j = 0; j < nOutputs; j++)
         {
           for(int i = 0; i < opts[j].num_elem; i++)

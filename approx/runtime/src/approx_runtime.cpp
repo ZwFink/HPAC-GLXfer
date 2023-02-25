@@ -918,6 +918,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
   // This is constant across different TAF widths
   // NOUTPUTS
   real_t _output_table[SM_SZ_IN_BYTES/4]; //8*NTHREADS_PER_WARP*MAX_HIST_SIZE*n_output_values];
+  //real_t _output_table[1]; //8*NTHREADS_PER_WARP*MAX_HIST_SIZE*n_output_values];
   #pragma omp allocate(_states) allocator(omp_pteam_mem_alloc)
   #pragma omp allocate(_cur_index) allocator(omp_pteam_mem_alloc)
   #pragma omp allocate(_active_values) allocator(omp_pteam_mem_alloc)
@@ -1131,7 +1132,12 @@ void __approx_device_memo_in(void (*accurateFN)(void *), void *arg, const int de
   int gmem_start = s_tab_size * omp_get_team_num();
 
   real_t ipt_table[SM_SZ_IN_BYTES/4];
+  #ifdef OTABLE_GLOBAL
+  #pragma omp allocate(ipt_table) allocator(omp_cgroup_mem_alloc)
+  #else
   #pragma omp allocate(ipt_table) allocator(omp_pteam_mem_alloc)
+  #endif
+
   int n_sm_vals = SM_SZ_IN_BYTES/4;
 
   if(!init_done)

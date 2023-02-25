@@ -672,11 +672,14 @@ unsigned int tnum_in_table_with_max_dist(float max_dist)
   else
       my_mask = ((1 << threads_per_table) - 1) << (threads_per_table*table_in_warp);
 
-  unsigned int shift = threads_per_table * table_in_warp;
+  mask_t shift = threads_per_table * table_in_warp;
   if(threads_per_table == NTHREADS_PER_WARP)
     shift = 0;
   float max_dist_warp = intr::reduceMaxImpl(my_mask, max_dist, shift);
-  unsigned int hasMax = intr::warpBallot(my_mask, max_dist == max_dist_warp) >> shift;
+  //mask_t hasMax = intr::warpBallot(FULL_MASK, max_dist == max_dist_warp) >> shift;
+  // for some reason we can't do equality check on amdgcn, need to check within tolerance
+  bool haveMax = std::abs(max_dist-max_dist_warp) <= 1e-10;
+  mask_t hasMax = intr::warpBallot(FULL_MASK, haveMax) >> shift;
   //-1 because ffs(0) = 0, ffs(1) = 1. hasMax should never be zero
   firstThreadWithMax = intr::ffs(hasMax) - 1;
 

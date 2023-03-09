@@ -21,8 +21,8 @@ LIGHTPURPLE='\033[1;35m'
 LIGHTCYAN='\033[1;36m'
 WHITE='\033[1;37m'
 
-clang_bin=$prefix/bin/clang
-#clang_bin=/dev/null
+#clang_bin=$prefix/bin/clang
+clang_bin=/dev/null
 #approx_runtime_lib=$prefix/lib/libapprox.so
 approx_runtime_lib=/dev/null
 

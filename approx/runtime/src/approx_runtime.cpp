@@ -974,7 +974,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
         {
           for(int i = 0; i < opts[j].num_elem; i++)
             {
-              size_t access_index = k + (n_output_values * (offset+i));
+              size_t access_index = k+offset+i;
               convertFromSingleWithOffset(outputs[j], output_table, i, access_index,
                                           (ApproxType) out_reg[j].data_type);
 
@@ -1005,7 +1005,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
         {
           for(int i = 0; i < opts[j].num_elem; i++)
             {
-              size_t access_index = k + (n_output_values * (offset+i));
+              size_t access_index = k + offset + i;
               convertToSingleWithOffset(output_table, outputs[j], access_index, i,
                                         (ApproxType) out_reg[j].data_type);
 
@@ -1035,7 +1035,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
             {
               for(int i = 0; i < opts[j].num_elem; i++)
                 {
-                  size_t access_index = k + (n_output_values * (offset+i));
+                  size_t access_index = k + offset + i;
 
                   avg += output_table[access_index];
 
@@ -1061,7 +1061,7 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
             {
               for(int i = 0; i < opts[j].num_elem; i++)
                 {
-                  size_t access_index = k + (n_output_values * (offset+i));
+                  size_t access_index = k + offset + i;
 
                   real_t tmp = output_table[access_index] - avg;
                   variance += tmp*tmp;

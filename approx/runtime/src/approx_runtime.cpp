@@ -945,12 +945,15 @@ void __approx_device_memo_out(void (*accurateFN)(void *), void *arg, const int d
   int globalSublaneID = (omp_get_team_num() * omp_get_num_threads() / TAF_THREAD_WIDTH) + (omp_get_thread_num() / TAF_THREAD_WIDTH);
   if(!init_done)
     {
+      for(int i = omp_get_thread_num(); i < SM_SZ_IN_BYTES/4; i += omp_get_num_threads())
+      {
+        _output_table[i] = 0;
+      }
       if(threadInSublane == 0)
         {
           states[sublaneInWarp] = ACCURATE;
           cur_index[sublaneInWarp] = 0;
           active_values[sublaneInWarp] = 0;
-          output_table[sublaneInWarp] = 0;
         }
     }
 
